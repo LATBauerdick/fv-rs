@@ -1,10 +1,13 @@
 
+use crate::*;
+use crate::chol::*;
+
 #[derive(Debug)]
-pub struct Vec3 ( pub [f64; 3] );
+pub struct Vec3 ( pub [Number; 3] );
 
 #[derive(Debug)]
 pub struct Cov3 {
-    pub v: [f64; 6],
+    pub v: [Number; 6],
 }
 
 impl Cov3 {
@@ -12,7 +15,7 @@ impl Cov3 {
         format!("Cov3 {:?}", self.v)
     }
     // SymMat
-    pub fn det(&self) -> f64 {
+    pub fn det(&self) -> Number {
         // [a,b,c,d,e,f] = self.v;
         let a = self.v[0];
         let b = self.v[1];
@@ -22,33 +25,47 @@ impl Cov3 {
         let f = self.v[5];
         a*d*f - a*e*e - b*b*f + 2.0*b*c*e - c*c*d
     }
+
+    pub fn choldc(&self) -> Jac33 {
+        let vj: &mut [Number; 9] = &mut [0.0; 9];
+        do_choldc(self.v, 3, vj);
+        Jac33 { v: *vj }
+    }
 }
 
 #[derive(Debug)]
-pub struct Cov5(pub [f64; 15]);
+pub struct Jac33 {
+    pub v: [Number; 9],
+}
+impl Jac33 {
+    pub fn to_string(&self) -> String {
+        format!("Jac33 {:?}", self.v)
+    }
+    pub fn tr(&mut self) -> &Jac33 {
+
+        let w = 3;
+        let ixa = |i0: usize, j0: usize| i0*w+j0;
+
+        let tmp: [Number; 9] = self.v.clone();                ;
+        for i0 in 0..w {
+            for j0 in 0..w {
+                self.v[ixa(i0, j0)] = tmp[ixa(j0, i0)];
+            }
+        }
+        self
+    }
+}
+
+#[derive(Debug)]
+pub struct Cov5(pub [Number; 15]);
 impl Cov5 {
     pub fn to_string(&self) -> String {
         format!("Cov5 {:?}", self.0)
     }
     // SymMat
-    pub fn det(&self) -> f64 {
+    pub fn det(&self) -> Number {
         // [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o] = self.0;
         let (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o) = (self.0[0],self.0[1],self.0[2],self.0[3],self.0[4],self.0[5],self.0[6],self.0[7],self.0[8],self.0[9],self.0[10],self.0[11],self.0[12],self.0[13],self.0[14],);
-        // let a = self.0[0];
-        // let b = self.0[1];
-        // let c = self.0[2];
-        // let d = self.0[3];
-        // let e = self.0[4];
-        // let f = self.0[5];
-        // let g = self.0[6];
-        // let h = self.0[7];
-        // let i = self.0[8];
-        // let j = self.0[9];
-        // let k = self.0[10];
-        // let l = self.0[11];
-        // let m = self.0[12];
-        // let n = self.0[13];
-        // let o = self.0[14];
         a*f*j*m*o - a*f*j*n*n - a*f*k*k*o + 2.0*a*f*k*l*n - a*f*l*l*m
             - a*g*g*m*o + a*g*g*n*n + 2.0*a*g*h*k*o - 2.0*a*g*h*l*n - 2.0*a*g*i*k*n
             + 2.0*a*g*i*l*m - a*h*h*j*o + a*h*h*l*l + 2.0*a*h*i*j*n - 2.0*a*h*i*k*l
@@ -92,9 +109,9 @@ det this                {}
 ",
     ch3.to_string(),
     // ch3.to_string(),
-    ch3.to_string(),
+    ch3.choldc().to_string(),
     // (choldc ch3).to_string(),
-    ch3.to_string(),
+    ch3.choldc().tr().to_string(),
     // ((choldc ch3) *. tr (choldc ch3)).to_string(),
     ch3.to_string(),
     // (cholInv ch3).to_string(),

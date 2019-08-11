@@ -1,11 +1,15 @@
 #![allow(dead_code)]
 
+pub type Number = f64;
+
 mod cov;
+mod chol;
 use crate::cov::*;
+
 
 #[derive(Debug)]
 struct XMeas (Vec3, Cov3);
-// struct XMeas (f64,  f64);
+// struct XMeas (,  );
 
 impl XMeas {
     fn to_string (&self) -> String {
@@ -16,7 +20,7 @@ impl XMeas {
 }
 
 fn main() {
-    let vxc3: [f64; 6] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+    let vxc3: [Number; 6] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
     let xc3: Cov3 = Cov3 {v: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]};
     let x3: XMeas = XMeas (
         Vec3 ( [1.0, 2.0, 3.0] ),
