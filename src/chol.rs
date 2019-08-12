@@ -38,11 +38,7 @@ pub fn do_choldc(a: [Number; 6], n: usize, vj: &mut [Number; 9]) {
 //     ixarr = indV n
     let w = &n;
     let ixa = |i0: usize, j0: usize| {
-        if i0 <= j0 {
-            if i0 == 0 { j0 } else { i0*w - (i0*(i0-1)) / 2 + j0-i0 }
-        }  else {
-            if j0 == 0 { i0 } else { j0*w - (j0*(j0-1)) / 2 + i0-j0 }
-        }
+        if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
     };
     let ixarr = |i0: usize, j0: usize| i0*w+j0;
 
@@ -67,7 +63,6 @@ pub fn do_choldc(a: [Number; 6], n: usize, vj: &mut [Number; 9]) {
             let p_ip = arr[ll+i0];
             let p = if i0==j0 { s.sqrt() } else { s/p_ip };
             if i0==j0 { arr[ll+i0] = p; } else { arr[ixarr(j0, i0)] = p; };
-            println!["i0 {} j0 {} aij {}", i0, j0, aij];
         }
     }
     // -- copy diagonal back into array
@@ -76,9 +71,87 @@ pub fn do_choldc(a: [Number; 6], n: usize, vj: &mut [Number; 9]) {
       arr[ixarr(i0, i0)] = aii;
     }
     // for i0 in 0..ll { vj[i0] = arr[i0]; };
-    vj.clone_from_slice(&arr[..ll]);
+    vj.clone_from_slice(&arr[..ll])
 }
 
+///   Matrix inversion using Cholesky decomposition of a symmetric, positive definite matrix.
+///   based on Numerical Recipies formula in 2.9
+///   The result for a matrix  M  is a lower triangular matrix  L  such that:
+///
+///   Example:
+///
+/// >            (  2 -1  0 )   (  0.75  0.50  0.25 )
+/// >            ( -1  2 -1 )   (  0.50  1.00  0.50 )
+/// > cholinv    (  0 -1  2 ) = (  0.25  0.50  0.75 )
+///
+pub fn do_cholinv(a: [Number; 6], n: usize, vc: &mut [Number; 6]) {
+
+    let ll = n*n;
+    let mut arr: [Number; 31] = [0.0; 31];
+    let w = &n;
+    let ixa = |i0: usize, j0: usize| {
+        if i0 <= j0 {
+            if i0 == 0 { j0 } else { i0*w - (i0*(i0-1)) / 2 + j0-i0 }
+        }  else {
+            if j0 == 0 { i0 } else { j0*w - (j0*(j0-1)) / 2 + i0-j0 }
+        }
+    };
+    let ixarr = |i0: usize, j0: usize| i0*w+j0;
+
+    for i0 in 0..n {
+        for j0 in i0..n {
+            let aij = a[ixa(i0, j0)];
+            if i0 == j0 { arr[ll + i0] = aij; } else { arr[ixarr(j0, i0)] = aij; };
+            for k0 in 0..=i0 {
+                let aik = arr[ixarr(i0, k0)];
+                let ajk = arr[ixarr(j0, k0)];
+                let maij = if i0 == j0 { arr[ll+i0] } else { arr[ixarr(j0, i0)] };
+                let s = maij - aik*ajk;
+                if i0 == j0 { arr[ll+i0]=s; } else { arr[ixarr(j0, i0)] = s; };
+            };
+            let msum = if i0 == j0 { arr[ll+i0] } else { arr[ixarr(j0, i0)] };
+            let s = if i0==j0 && msum < 0.0 {
+                writeln!(std::io::stderr(), 
+                         "cholinv: not a positive definite matrix ")
+                    .unwrap();
+                std::process::exit(1);
+            } else { msum };
+            let p_ip = arr[ll+i0];
+            let p = if i0==j0 { s.sqrt() } else { s/p_ip };
+            if i0==j0 { arr[ll+i0] = p; } else { arr[ixarr(j0, i0)] = p; };
+        }
+    }
+
+
+    // -- copy diagonal back into array
+    for i0 in 0..n {
+      let p_i = arr[ll+i0];
+      arr[ixarr(i0, i0)] = 1.0/p_i;
+      for j0 in i0+1..n {
+          arr[ll+n] = 0.0;
+          for k0 in i0..j0 {
+              let ajk = arr[ixarr(j0, k0)];
+              let aki = arr[ixarr(k0, i0)];
+              let s = arr[ll+n];
+              arr[ll+n] = s - ajk * aki;
+          }
+
+        let msum = arr[ll+n];
+        let p_j = arr[ll+j0];
+        arr[ixarr(j0, i0)] = msum/p_j
+      }
+    }
+
+    let idx = |i0: usize, j0: usize| i0*n+j0;
+    for i0 in 0..n {
+    for j0 in i0..n {
+        let mut aij = 0.0;
+        for k0 in 0..n {
+            aij += arr[idx(k0, i0)] * arr[idx(k0, j0)];
+        }
+        vc[ixa(i0, j0)] = aij;
+    }}
+}
 // C version Numerical Recipies 2.9
 // for (i=1;i<=n;i++) {
 //   for (j=i;j<=n;j++) {
