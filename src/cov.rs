@@ -2,13 +2,15 @@
 use crate::*;
 use crate::chol::*;
 
-#[derive(Debug)]
-pub struct Vec3 ( pub [Number; 3] );
+pub type NA3 = [Number; 3];
+pub type NA6 = [Number; 6];
+pub type NA9 = [Number; 9];
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct Cov3 {
-    pub v: [Number; 6],
-}
+pub struct Vec3 ( pub NA3 );
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Cov3 { pub v: NA6 }
 
 impl Cov3 {
     pub fn to_string(&self) -> String {
@@ -37,24 +39,20 @@ impl Cov3 {
         a*d*f - a*e*e - b*b*f + 2.0*b*c*e - c*c*d
     }
 
-    pub fn choldc(&self) -> Jac33 {
-        let vj: &mut NA9 = &mut [0.0; 9];
-        do_choldc(self.v, 3, vj);
-        Jac33 { v: *vj }
+    pub fn choldc(self) -> Jac33 {
+        let vj: NA9 = do_choldc(self.v, 3);
+        Jac33 { v: vj }
     }
 
     pub fn cholinv(&self) -> Cov3 {
-        let vc: &mut [Number; 6] = &mut [0.0; 6];
-        do_cholinv(self.v, 3, vc);
-        Cov3 { v: *vc }
+        let vc: NA6 = do_cholinv(self.v, 3);
+        Cov3 { v: vc }
     }
 }
 
-type NA9 = [Number; 9];
 #[derive(Debug, PartialEq, Clone)]
-pub struct Jac33 {
-    pub v: NA9,
-}
+pub struct Jac33 { pub v: NA9 }
+
 impl Jac33 {
     pub fn to_string(&self) -> String {
         // format!("Jac33 {:?}", self.v)
@@ -75,17 +73,16 @@ impl Jac33 {
     }
 }
 
-
-fn new_na9_from<F: Iterator<Item=Number>>(src: F) -> NA9 {
-    let mut result: NA9 = [0.0; 9];
-    for (rref, val) in result.iter_mut().zip(src) {
-        *rref = val;
-    }
-    result
-}
-fn cmap<F: Fn(Number, Number) -> Number>(a: NA9, b: NA9, f: F) -> NA9 {
-    new_na9_from(a.iter().zip(&b).map(|(x, y)| f(*x, *y)))
-}
+// fn new_na9_from<F: Iterator<Item=Number>>(src: F) -> NA9 {
+//     let mut result: NA9 = [0.0; 9];
+//     for (rref, val) in result.iter_mut().zip(src) {
+//         *rref = val;
+//     }
+//     result
+// }
+// fn cmap<F: Fn(Number, Number) -> Number>(a: NA9, b: NA9, f: F) -> NA9 {
+//     new_na9_from(a.iter().zip(&b).map(|(x, y)| f(*x, *y)))
+// }
 
 use std::ops::Add;
 impl Add for Cov3 {
@@ -222,9 +219,9 @@ det this                {}
 ",
     ch3.to_string(),
     // ch3.to_string(),
-    ch3.choldc().to_string(),
+    ch3.clone().choldc().to_string(),
     // (choldc ch3).to_string(),
-    (ch3.choldc() * ch3.choldc().tr()).to_string(),
+    (ch3.clone().choldc() * ch3.clone().choldc().tr()).to_string(),
     // ((choldc ch3) *. tr (choldc ch3)).to_string(),
     ch3.cholinv().to_string(),
     // (cholInv ch3).to_string(),

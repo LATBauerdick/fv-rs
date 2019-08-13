@@ -1,6 +1,8 @@
 
 use crate::Number;
 
+use crate::cov::NA9;
+use crate::cov::NA6;
 
 use std::io::Write;
 
@@ -23,7 +25,7 @@ use std::io::Write;
 /// The Cholesky factor L is returned in the lower triangle of a,
 /// except for its diagonal elements which are returned in p[1..n].
 
-pub fn do_choldc(a: [Number; 6], n: usize, vj: &mut [Number; 9]) {
+pub fn do_choldc(a: NA6, n: usize) -> NA9 {
 
     let ll = n*n;
     let mut arr: [Number; 31] = [0.0; 31];
@@ -71,7 +73,9 @@ pub fn do_choldc(a: [Number; 6], n: usize, vj: &mut [Number; 9]) {
       arr[ixarr(i0, i0)] = aii;
     }
     // for i0 in 0..ll { vj[i0] = arr[i0]; };
-    vj.clone_from_slice(&arr[..ll])
+    let mut vj: NA9 = [0.0; 9];
+    vj.clone_from_slice(&arr[..ll]);
+    vj
 }
 
 ///   Matrix inversion using Cholesky decomposition of a symmetric, positive definite matrix.
@@ -84,7 +88,7 @@ pub fn do_choldc(a: [Number; 6], n: usize, vj: &mut [Number; 9]) {
 /// >            ( -1  2 -1 )   (  0.50  1.00  0.50 )
 /// > cholinv    (  0 -1  2 ) = (  0.25  0.50  0.75 )
 ///
-pub fn do_cholinv(a: [Number; 6], n: usize, vc: &mut [Number; 6]) {
+pub fn do_cholinv(a: NA6, n: usize) -> NA6 {
 
     let ll = n*n;
     let mut arr: [Number; 31] = [0.0; 31];
@@ -111,7 +115,7 @@ pub fn do_cholinv(a: [Number; 6], n: usize, vc: &mut [Number; 6]) {
             };
             let msum = if i0 == j0 { arr[ll+i0] } else { arr[ixarr(j0, i0)] };
             let s = if i0==j0 && msum < 0.0 {
-                writeln!(std::io::stderr(), 
+                writeln!(std::io::stderr(),
                          "cholinv: not a positive definite matrix ")
                     .unwrap();
                 std::process::exit(1);
@@ -142,6 +146,7 @@ pub fn do_cholinv(a: [Number; 6], n: usize, vc: &mut [Number; 6]) {
       }
     }
 
+    let mut vc: NA6 = [0.0; 6];
     let idx = |i0: usize, j0: usize| i0*n+j0;
     for i0 in 0..n {
     for j0 in i0..n {
@@ -151,6 +156,7 @@ pub fn do_cholinv(a: [Number; 6], n: usize, vc: &mut [Number; 6]) {
         }
         vc[ixa(i0, j0)] = aij;
     }}
+    vc
 }
 // C version Numerical Recipies 2.9
 // for (i=1;i<=n;i++) {
