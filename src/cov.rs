@@ -345,27 +345,16 @@ A * A^(-1)              {}
 det this                {}
 ",
     ch3.to_string(),
-    // ch3.to_string(),
     ch3.clone().choldc().to_string(),
-    // (choldc ch3).to_string(),
     (ch3.clone().choldc() * ch3.clone().choldc().tr()).to_string(),
-    // ((choldc ch3) *. tr (choldc ch3)).to_string(),
     ch3.cholinv().to_string(),
-    // (cholInv ch3).to_string(),
     (ch3.clone() * ch3.cholinv()).to_string(),
-    // (ch3 *. cholInv ch3).to_string(),
     ch5.to_string(),
-    // ch5.to_string(),
     ch5.clone().choldc().to_string(),
-    // (choldc ch5).to_string(),
     (ch5.clone().choldc() * ch5.clone().choldc().tr()).to_string(),
-    // ((choldc ch5) *. tr (choldc ch5)).to_string(),
     ch5.cholinv().to_string(),
-    // (cholInv ch5).to_string(),
     (ch5.clone() * ch5.cholinv()).to_string(),
-    // (ch5 *. cholInv ch5).to_string(),
     ch5.det().to_string(),
-    // ch5.det().to_string(),
     );
     print!("{}", res);
     assert!(true, "test failed with '{}'", res);
