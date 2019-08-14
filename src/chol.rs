@@ -1,8 +1,7 @@
 
 use crate::Number;
 
-use crate::cov::NA9;
-use crate::cov::NA6;
+use crate::cov::NA;
 
 use std::io::Write;
 
@@ -25,7 +24,7 @@ use std::io::Write;
 /// The Cholesky factor L is returned in the lower triangle of a,
 /// except for its diagonal elements which are returned in p[1..n].
 
-pub fn do_choldc(a: NA6, n: usize) -> NA9 {
+pub fn do_choldc(a: &mut NA, n: usize) {
 
     let ll = n*n;
     let mut arr: [Number; 31] = [0.0; 31];
@@ -73,9 +72,7 @@ pub fn do_choldc(a: NA6, n: usize) -> NA9 {
       arr[ixarr(i0, i0)] = aii;
     }
     // for i0 in 0..ll { vj[i0] = arr[i0]; };
-    let mut vj: NA9 = [0.0; 9];
-    vj.clone_from_slice(&arr[..ll]);
-    vj
+    a.clone_from_slice(&arr[..ll]);
 }
 
 ///   Matrix inversion using Cholesky decomposition of a symmetric, positive definite matrix.
@@ -88,7 +85,7 @@ pub fn do_choldc(a: NA6, n: usize) -> NA9 {
 /// >            ( -1  2 -1 )   (  0.50  1.00  0.50 )
 /// > cholinv    (  0 -1  2 ) = (  0.25  0.50  0.75 )
 ///
-pub fn do_cholinv(a: NA6, n: usize) -> NA6 {
+pub fn do_cholinv(a: &mut NA, n: usize) {
 
     let ll = n*n;
     let mut arr: [Number; 31] = [0.0; 31];
@@ -146,7 +143,6 @@ pub fn do_cholinv(a: NA6, n: usize) -> NA6 {
       }
     }
 
-    let mut vc: NA6 = [0.0; 6];
     let idx = |i0: usize, j0: usize| i0*n+j0;
     for i0 in 0..n {
     for j0 in i0..n {
@@ -154,9 +150,8 @@ pub fn do_cholinv(a: NA6, n: usize) -> NA6 {
         for k0 in 0..n {
             aij += arr[idx(k0, i0)] * arr[idx(k0, j0)];
         }
-        vc[ixa(i0, j0)] = aij;
+        a[ixa(i0, j0)] = aij;
     }}
-    vc
 }
 // C version Numerical Recipies 2.9
 // for (i=1;i<=n;i++) {

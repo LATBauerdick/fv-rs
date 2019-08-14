@@ -22,8 +22,9 @@ impl XMeas {
 fn main() {
     let vxc3: [Number; 6] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
     let xc3: Cov3 = Cov3 {v: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]};
+    let vc3: Vec3 = Vec3 { v: [1.0, 2.0, 3.0] };
     let x3: XMeas = XMeas (
-        Vec3 ( [1.0, 2.0, 3.0] ),
+        vc3,
         xc3,
     );
     println!("vxc3 is {:?}", vxc3);
