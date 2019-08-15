@@ -160,6 +160,17 @@ impl Add for Jac55 {
     }
 }
 use std::ops::Mul;
+impl Mul for Vec3 {
+    type Output = Number;
+    fn mul(self, other: Vec3) -> Number {
+        let nb = 3;
+        let mut s = 0.0;
+        for k in 0..nb {
+            s += self.v[k] * other.v[k];
+        }
+        s
+    }
+}
 impl Mul for Jac33 {
     type Output = Jac33;
     fn mul(mut self, other: Jac33) -> Jac33 {
@@ -357,6 +368,11 @@ det this                {}
     ch5.det().to_string(),
     );
     print!("{}", res);
+
+    let v3 = Vec3 { v: [10.0,11.0,12.0] };
+    // res.push_str(&format!("Vec *. Vec = {}\n", (v3.clone() * v3).to_string()));
+    println!("Vec * Vec = {}\n", (v3.clone() * v3).to_string());
+
     assert!(true, "test failed with '{}'", res);
 }
 
