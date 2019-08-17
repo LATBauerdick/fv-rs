@@ -2,6 +2,8 @@
 use crate::*;
 use crate::chol::*;
 
+use std::fmt;
+
 pub type NA = [Number];
 pub type NA3 = [Number; 3];
 pub type NA6 = [Number; 6];
@@ -36,20 +38,6 @@ pub type Cov3 = Cov<NA6>;
 pub type Cov5 = Cov<NA15>;
 
 impl Cov3 {
-    pub fn to_string(&self) -> String {
-        let w = 3;
-        let idx = |i0: usize, j0: usize| {
-            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
-        };
-        let mut v: NA9 = [0.0; 9];
-        for i in 0usize..3 {
-            for j in 0usize..3 {
-                v[j*w+i] = self.v[idx(i,j)];
-            }
-        }
-        pretty_matrix(3,3,&v)
-    }
-
     // SymMat
     pub fn det(&self) -> Number {
         // [a,b,c,d,e,f] = self.v;
@@ -77,14 +65,26 @@ impl Cov3 {
     }
 }
 
+impl fmt::Display for Cov3 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let w = 3;
+        let idx = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
+        };
+        let mut v: NA9 = [0.0; 9];
+        for i in 0usize..3 {
+            for j in 0usize..3 {
+                v[j*w+i] = self.v[idx(i,j)];
+            }
+        }
+        write!(f, "Cov3:{}", pretty_matrix(3,3,&v))
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct Jac33 { pub v: NA9 }
 
 impl Jac33 {
-    pub fn to_string(&self) -> String {
-        // format!("Jac33 {:?}", self.v)
-        pretty_matrix(3, 3, &self.v)
-    }
     pub fn tr(mut self) -> Jac33 {
 
         let w = 3;
@@ -100,14 +100,16 @@ impl Jac33 {
     }
 }
 
+impl fmt::Display for Jac33 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Jac33:{}", pretty_matrix(3,3,&self.v))
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct Jac55 { pub v: NA25 }
 
 impl Jac55 {
-    pub fn to_string(&self) -> String {
-        // format!("Jac55 {:?}", self.v)
-        pretty_matrix(5, 5, &self.v)
-    }
     pub fn tr(mut self) -> Jac55 {
 
         let w = 5;
@@ -120,6 +122,11 @@ impl Jac55 {
             }
         }
         self
+    }
+}
+impl fmt::Display for Jac55 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Jac55:{}", pretty_matrix(5,5,&self.v))
     }
 }
 // fn new_na9_from<F: Iterator<Item=Number>>(src: F) -> NA9 {
@@ -266,20 +273,6 @@ impl Mul for Cov5 {
 // #[derive(Debug)]
 // pub struct Cov5(pub [Number; 15]);
 impl Cov5 {
-    pub fn to_string(&self) -> String {
-        let w = 5;
-        let idx = |i0: usize, j0: usize| {
-            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
-        };
-        let mut v: NA25 = [0.0; 25 ];
-        for i in 0usize..5 {
-            for j in 0usize..5 {
-                v[j*w+i] = self.v[idx(i,j)];
-            }
-        }
-        // format!("Cov5 {:?}", self.v)
-        pretty_matrix(5,5,&v)
-    }
     // SymMat
     pub fn det(&self) -> Number {
         // [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o] = self.0;
@@ -314,6 +307,21 @@ impl Cov5 {
         xx.copy_from_slice(&self.v);
         do_cholinv(&mut xx[..], 5);
         Cov5 { v: *xx }
+    }
+}
+impl fmt::Display for Cov5 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let w = 5;
+        let idx = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
+        };
+        let mut v: NA25 = [0.0; 25 ];
+        for i in 0usize..5 {
+            for j in 0usize..5 {
+                v[j*w+i] = self.v[idx(i,j)];
+            }
+        }
+        write!(f, "Cov5:{}", pretty_matrix(5,5,&v))
     }
 }
 
@@ -355,23 +363,24 @@ A^(-1) = L' * L'^T      {}
 A * A^(-1)              {}
 det this                {}
 ",
-    ch3.to_string(),
-    ch3.clone().choldc().to_string(),
-    (ch3.clone().choldc() * ch3.clone().choldc().tr()).to_string(),
-    ch3.cholinv().to_string(),
-    (ch3.clone() * ch3.cholinv()).to_string(),
-    ch5.to_string(),
-    ch5.clone().choldc().to_string(),
-    (ch5.clone().choldc() * ch5.clone().choldc().tr()).to_string(),
-    ch5.cholinv().to_string(),
-    (ch5.clone() * ch5.cholinv()).to_string(),
-    ch5.det().to_string(),
+    ch3,
+    ch3.clone().choldc(),
+    ch3.clone().choldc() * ch3.clone().choldc().tr(),
+    ch3.cholinv(),
+    ch3.clone() * ch3.cholinv(),
+    ch5,
+    ch5.clone().choldc(),
+    ch5.clone().choldc() * ch5.clone().choldc().tr(),
+    ch5.cholinv(),
+    ch5.clone() * ch5.cholinv(),
+    ch5.det(),
     );
     print!("{}", res);
 
     let v3 = Vec3 { v: [10.0,11.0,12.0] };
     // res.push_str(&format!("Vec *. Vec = {}\n", (v3.clone() * v3).to_string()));
-    println!("Vec * Vec = {}\n", (v3.clone() * v3).to_string());
+    println!("Vec * Vec = {}\n", v3.clone() * v3);
+    println!("Cov *. Cov = {}\n", (Cov3 {v: [1.0,2.0,3.0,4.0,5.0,6.0]}) * (Cov3 {v: [0.0,0.0,1.0,1.0,0.0,0.0]}));
 
     assert!(true, "test failed with '{}'", res);
 }
