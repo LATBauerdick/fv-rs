@@ -4,8 +4,11 @@ use crate::chol::*;
 
 use std::fmt;
 
+use std::convert::From;
+
 pub type NA = [Number];
 pub type NA3 = [Number; 3];
+pub type NA5 = [Number; 5];
 pub type NA6 = [Number; 6];
 pub type NA9 = [Number; 9];
 pub type NA15 = [Number; 15];
@@ -14,10 +17,37 @@ pub type NA25 = [Number; 25];
 enum Dim { Dim3, Dim4, Dim5 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct Vec<T> { pub v: T }
+pub struct Vecn<T> { pub v: T }
 
-pub type Vec3 = Vec<NA3>;
+pub type Vec3 = Vecn<NA3>;
+pub type Vec5 = Vecn<NA5>;
 
+impl fmt::Display for Vec3 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Vec3:{}", pretty_matrix(3,1,&self.v))
+    }
+}
+impl fmt::Display for Vec5 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Vec5:{}", pretty_matrix(5,1,&self.v))
+    }
+}
+impl From<NA3> for Vec3 {
+    fn from(v: NA3) -> Self {
+        Vec3 { v }
+    }
+}
+impl From<NA5> for Vec5 {
+    fn from(v: NA5) -> Self {
+        Vec5 { v }
+    }
+}
+impl From<Vec<Number>> for Vec3 {
+    fn from(v: Vec<Number>) -> Self {
+        let a: NA3 =if v.len() >= 3 { [ v[0], v[1], v[2], ] } else { [0.0;3] };
+        Vec3 { v: a }
+    }
+}
 // pub type Vecxx = struct Vecx3 { pub v: NA3 }
 
 // pub enum Dim { Dim3, Dim4, Dim5 }
@@ -81,22 +111,40 @@ impl fmt::Display for Cov3 {
     }
 }
 
+impl From<NA6> for Cov3 {
+    fn from(v: NA6) -> Self {
+        Cov3 { v }
+    }
+}
+impl From<Vec<Number>> for Cov3 {
+    fn from(v: Vec<Number>) -> Self {
+        let a: NA6 =
+            if v.len() == 6 { [ v[0], v[1], v[2], v[3], v[4], v[5], ] }
+            else if v.len() >= 9 { [ v[0], v[1], v[2], v[4], v[5], v[8], ] }
+            else { [0.0;6] }; // error
+        Cov3 { v: a }
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 pub struct Jac33 { pub v: NA9 }
 
 impl Jac33 {
-    pub fn tr(mut self) -> Jac33 {
-
+    pub fn tr(&self) -> Jac33 {
         let w = 3;
         let ixa = |i0: usize, j0: usize| i0*w+j0;
 
-        let tmp: NA9 = self.v.clone();                ;
+        let xx: &mut NA9 = &mut [0.0; 9];
         for i0 in 0..w {
             for j0 in 0..w {
-                self.v[ixa(i0, j0)] = tmp[ixa(j0, i0)];
+                xx[ixa(i0, j0)] = self.v[ixa(j0, i0)];
             }
         }
-        self
+        Jac33 { v: *xx }
+    }
+}
+impl From<NA9> for Jac33 {
+    fn from(v: NA9) -> Self {
+        Jac33 { v }
     }
 }
 
@@ -110,23 +158,35 @@ impl fmt::Display for Jac33 {
 pub struct Jac55 { pub v: NA25 }
 
 impl Jac55 {
-    pub fn tr(mut self) -> Jac55 {
-
+    pub fn tr(&self) -> Jac55 {
         let w = 5;
         let ixa = |i0: usize, j0: usize| i0*w+j0;
 
-        let tmp: NA25 = self.v.clone();                ;
+        let xx: &mut NA25 = &mut [0.0; 25];
         for i0 in 0..w {
             for j0 in 0..w {
-                self.v[ixa(i0, j0)] = tmp[ixa(j0, i0)];
+                xx[ixa(i0, j0)] = self.v[ixa(j0, i0)];
             }
         }
-        self
+        Jac55 { v: *xx }
     }
 }
 impl fmt::Display for Jac55 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Jac55:{}", pretty_matrix(5,5,&self.v))
+    }
+}
+impl From<NA25> for Jac55 {
+    fn from(v: NA25) -> Self {
+        Jac55 { v }
+    }
+}
+impl From<Vec<Number>> for Jac55 {
+    fn from(v: Vec<Number>) -> Self {
+        let a: NA25 =
+            if v.len() >= 25 { [ v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], v[16], v[17], v[18], v[19],v[20], v[21], v[22], v[23], v[24], ] }
+            else { [0.0;25] }; // error
+        Jac55 { v: a }
     }
 }
 // fn new_na9_from<F: Iterator<Item=Number>>(src: F) -> NA9 {
@@ -221,6 +281,26 @@ impl Mul for Jac55 {
         self
     }
 }
+impl Mul for Jac55 {
+    type Output = Cov5;
+    fn mul(mut self, other: Cov5) -> Jac55 {
+        let nb = 5;
+        let na = self.v.len() / nb;
+// indV w i0 j0 = i0*w+j0 -- w=nj width of niXnj matrix, i0=0..ni-1, j0=0..nj-1
+        let ixa = |i0, j0| i0*nb+j0;
+        let ixb = |i0, j0| i0*na+j0;
+        let tmp = self.v.clone();                ;
+        for i in 0..na {
+        for j in 0..na {
+        let mut s = 0.0;
+        for k in 0..nb {
+            s += tmp[ixa(i,k)] * other.v[ixb(k,j)];
+        }
+        self.v[ixa(i,j)] = s;
+        }}
+        Cov5 { v: [0f64; 15] }
+    }
+}
 
 impl Mul for Cov3 {
     type Output = Jac33;
@@ -267,6 +347,15 @@ impl Mul for Cov5 {
         res.v[ixr(i,j)] = s;
         }}
         res
+    }
+}
+impl From<Vec<Number>> for Cov5 {
+    fn from(v: Vec<Number>) -> Self {
+        let a: NA15 =
+            if v.len() == 15 { [ v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], ] }
+            else if v.len() >= 25 { [ v[0], v[1], v[2], v[3], v[4], v[6], v[7], v[8], v[9], v[12], v[13], v[14], v[18], v[19], v[24],] }
+            else { [0.0;15] }; // error
+        Cov5 { v: a }
     }
 }
 
@@ -345,7 +434,8 @@ pub fn pretty_matrix(r: usize, c: usize, v: &[Number]) -> String {
 fn test_cov() {
     // let Cov<Dim3> xc3 = Cov {v: Vec}
     //
-    let ch3 = Cov3 {v: [2.0, -1.0, 0.0, 2.0, -1.0, 2.0]};
+    let _ch3 : Cov3 = [2.0, -1.0, 0.0, 2.0, -1.0, 2.0].into();
+    let ch3 = Cov3::from([2.0, -1.0, 0.0, 2.0, -1.0, 2.0]);
     let ch5 = Cov5{ v: [2.0, -1.0, 0.0, 0.0, 0.0, 2.0, -1.0, 0.0, 0.0, 2.0, 0.0, 0.0, 2.0, 0.0, 2.0] };
 
 
@@ -364,13 +454,13 @@ A * A^(-1)              {}
 det this                {}
 ",
     ch3,
-    ch3.clone().choldc(),
-    ch3.clone().choldc() * ch3.clone().choldc().tr(),
+    ch3.choldc(),
+    ch3.choldc() * ch3.choldc().tr(),
     ch3.cholinv(),
     ch3.clone() * ch3.cholinv(),
     ch5,
-    ch5.clone().choldc(),
-    ch5.clone().choldc() * ch5.clone().choldc().tr(),
+    ch5.choldc(),
+    ch5.choldc() * ch5.choldc().tr(),
     ch5.cholinv(),
     ch5.clone() * ch5.cholinv(),
     ch5.det(),
