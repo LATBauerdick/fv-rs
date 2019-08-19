@@ -260,7 +260,7 @@ impl Mul for Jac33 {
     }
 }
 
-impl Mul for Jac55 {
+impl Mul<Jac55> for Jac55 {
     type Output = Jac55;
     fn mul(mut self, other: Jac55) -> Jac55 {
         //self.v.len() is 9;
@@ -281,9 +281,9 @@ impl Mul for Jac55 {
         self
     }
 }
-impl Mul for Jac55 {
+impl Mul<Cov5> for Jac55 {
     type Output = Cov5;
-    fn mul(mut self, other: Cov5) -> Jac55 {
+    fn mul(mut self, other: Cov5) -> Cov5 {
         let nb = 5;
         let na = self.v.len() / nb;
 // indV w i0 j0 = i0*w+j0 -- w=nj width of niXnj matrix, i0=0..ni-1, j0=0..nj-1

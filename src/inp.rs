@@ -40,6 +40,7 @@ fn h_slurpp(inp: Vec<f64>) -> Option<VHMeas> {
 
     }
     let h0 = nxtHp(inp[14..44].to_vec()).unwrap();
+    println!("h_slurp h0 = {:?}", h0);
     // hl    = mapMaybe (|i| f w2pt (inp[(i*30+14)..(i*30+44)] range 0 (nt-1)
     None
 }
@@ -65,23 +66,23 @@ fn nxtHp(ds: Vec<Number>) -> Option<HMeas> {
     let w0            = 0.003*3.8;  // CMS case: field is 3.8 T, give R in cm
     let st            = h1.sin();
     let ct            = h1.cos();
-    let w: Number            = h0 * w0 / ct;
+    let w             = h0 * w0 / ct;
     let tl            = st / ct;
     let j00           = w0 / ct;
     let j01           = h0 * w0 * st/ct/ct;
     let j11           = 1.0 / ct / ct;
     let j10           = 0.0;
-    let jj: Jac55            = [ j00, j01, 0.0, 0.0, 0.0,
-                                 j10, j11, 0.0, 0.0, 0.0,
-                                 0.0, 0.0, 1.0, 0.0, 0.0,
-                                 0.0, 0.0, 0.0, 1.0, 0.0,
-                                 0.0, 0.0, 0.0, 0.0, 1.0,
-                               ].into();
-    let hp: Vec5             = [w, tl, h2, h3, h4].into();
-    let chp: Cov5            = ds[5..30].to_vec().into();
-    let chpp              = jj * chp;
+    let jj: Jac55     = [ j00, j01, 0.0, 0.0, 0.0,
+                          j10, j11, 0.0, 0.0, 0.0,
+                          0.0, 0.0, 1.0, 0.0, 0.0,
+                          0.0, 0.0, 0.0, 1.0, 0.0,
+                          0.0, 0.0, 0.0, 0.0, 1.0,
+                        ].into();
+    let hp: Vec5        = [w, tl, h2, h3, h4].into();
+    let chp: Cov5       = ds[5..30].to_vec().into();
+    let chpp            = jj * chp;
 
-    HMeas(hp, chpp, w0)
+    Some(HMeas(hp, chpp, w0))
 
 }
 
