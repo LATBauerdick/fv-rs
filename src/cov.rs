@@ -284,21 +284,23 @@ impl Mul<Jac55> for Jac55 {
 impl Mul<Cov5> for Jac55 {
     type Output = Cov5;
     fn mul(mut self, other: Cov5) -> Cov5 {
-        let nb = 5;
-        let na = self.v.len() / nb;
-// indV w i0 j0 = i0*w+j0 -- w=nj width of niXnj matrix, i0=0..ni-1, j0=0..nj-1
-        let ixa = |i0, j0| i0*nb+j0;
-        let ixb = |i0, j0| i0*na+j0;
-        let tmp = self.v.clone();                ;
-        for i in 0..na {
-        for j in 0..na {
+        let n = 5;
+        let w = n;
+        let ixa = |i0: usize, j0: usize| i0*w+j0;
+        let ixb = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
+        };
+
+        let mut vr = [0.0; 25];
+        for i in 0..n {
+        for j in 0..n {
         let mut s = 0.0;
-        for k in 0..nb {
-            s += tmp[ixa(i,k)] * other.v[ixb(k,j)];
+        for k in 0..n {
+            s += self.v[ixa(i,k)] * other.v[ixb(k,j)];
         }
-        self.v[ixa(i,j)] = s;
+        vr[ixa(i,j)] = s;
         }}
-        Cov5 { v: [0f64; 15] }
+        vr[..].into()
     }
 }
 
@@ -349,8 +351,8 @@ impl Mul for Cov5 {
         res
     }
 }
-impl From<Vec<Number>> for Cov5 {
-    fn from(v: Vec<Number>) -> Self {
+impl From<&[Number]> for Cov5 {
+    fn from(v: &[Number]) -> Self {
         let a: NA15 =
             if v.len() == 15 { [ v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], ] }
             else if v.len() >= 25 { [ v[0], v[1], v[2], v[3], v[4], v[6], v[7], v[8], v[9], v[12], v[13], v[14], v[18], v[19], v[24],] }
