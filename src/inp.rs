@@ -35,18 +35,26 @@ fn h_slurpp(inp: Vec<f64>) -> Option<VHMeas> {
 
     println!("h_slurp w2pt = {:?}", w2pt);
     println!("h_slurp nt = {:?}", nt);
-    let hl: Vec<HMeas> = Vec::new();
+    let mut hl: Vec<HMeas> = Vec::new();
+    let aleph = w2pt != 1.0;
     for i in 0..nt {
-
+        let h0 =    if aleph { nxt_h(w2pt, inp[i*30+14..i*30+44].to_vec()).unwrap() }
+                    else { nxt_hp(inp[i*30+14..i*30+44].to_vec()).unwrap() };
+        hl.push(h0);
     }
-    let h0 = nxtHp(inp[14..44].to_vec()).unwrap();
-    println!("h_slurp h0 = {:?}", h0);
-    // hl    = mapMaybe (|i| f w2pt (inp[(i*30+14)..(i*30+44)] range 0 (nt-1)
-    None
+    println!("h_slurp h0 = {:?}", hl[0]);
+    Some(VHMeas{ vertex: v, helices: hl })
+}
+
+// -- get the next helix, aleph case
+fn nxt_h(w0: Number, ds: Vec<Number>) -> Option<HMeas> {
+    let h = ds[..5].to_vec().into();
+    let ch = ds[5..30].to_vec().into();
+    Some(HMeas(h, ch, w0))
 }
 
 // -- get the next helix, CMS case
-fn nxtHp(ds: Vec<Number>) -> Option<HMeas> {
+fn nxt_hp(ds: Vec<Number>) -> Option<HMeas> {
   // -- FV works in terms of a perigee system
   // -- w = omega = 1/R is curvature radius
   // -- tl = tan lambda = tangent of dipping angle (0 for pt-max)
@@ -88,12 +96,20 @@ fn nxtHp(ds: Vec<Number>) -> Option<HMeas> {
 
 
 #[test]
-fn test_inp() {
+fn test_inp_aleph() {
+    let ds = std::fs::read_to_string("dat/tr05129e001412.dat").unwrap();
+    let VHMeas {vertex: _x, helices: hl} = h_slurp(ds).unwrap();
+    let HMeas(_x,_y, w) = &hl[hl.len()-1];
 
+    let res = String::from("all good?");
+    assert!( *w == 4.5451703e-3, "test failed with '{}'", res);
+}
+#[test]
+fn test_inp_cms() {
     let _ds = std::fs::read_to_string("dat/tav-1.dat").unwrap();
     let ds = TAV4.to_string();
     let VHMeas {vertex: _x, helices: hl} = h_slurp(ds).unwrap();
-    let HMeas(_x,_y, w) = &hl[0];
+    let HMeas(_x,_y, w) = &hl[hl.len()-1];
 
     let res = String::from("all good?");
     assert!( *w == 0.0114f64, "test failed with '{}'", res);
