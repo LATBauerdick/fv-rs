@@ -192,6 +192,11 @@ impl From<Vec<Number>> for Cov4 {
         Cov4 { v: a }
     }
 }
+impl Cov5 {
+    pub fn diag(&self) -> NA5 {
+        [self.v[0], self.v[5], self.v[9], self.v[12], self.v[14], ]
+    }
+}
 impl From<&Cov5> for Cov3 { // we make a Cov3 from a Cov5 by just dropping the last R indices...
     fn from(cv: &Cov5) -> Self {
         let v = &cv.v;

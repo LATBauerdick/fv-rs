@@ -48,6 +48,7 @@ use crate::inp::h_slurp;
 fn test_fvt() {
     let ds = std::fs::read_to_string("dat/tr05129e001412.dat").unwrap();
     let VHMeas {vertex: x, helices: hel} = h_slurp(ds).unwrap();
+    for h in &hel { println!("{}", h) };
     for h in hel { println!("{}", QMeas::from(&h)) };
     println!("initial vertex position -> {}", x);
     let res = String::from("all good?");

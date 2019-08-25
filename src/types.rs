@@ -37,7 +37,21 @@ pub struct HMeas(pub Vec5, pub Cov5, pub Number);
 impl HMeas {
 
 }
+impl fmt::Display for HMeas {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let HMeas(h, ch, _w) = self;
 
+        let hs = h.v;
+        let sh: Vec<Number> = ch.diag().to_vec().into_iter().map(|x| x.sqrt()).collect();
+        let s00 = format!("{:10.5} +-{:10.5}", hs[0], sh[0]);
+        let s01 = format!("{:8.3} +-{:8.3}", hs[1], sh[1]);
+        let s02 = format!("{:8.3} +-{:8.3}", hs[2], sh[2]);
+        let s03 = format!("{:8.3} +-{:8.3}", hs[3], sh[3]);
+        let s04 = format!("{:8.3} +-{:8.3}", hs[4], sh[4]);
+
+        write!(fmt, "Helix ->{}{}{}{}{}", s00, s01, s02, s03, s04)
+    }
+}
 #[derive(Debug)]
 pub struct QMeas(pub Vec3, pub Cov3, pub Number);
 impl QMeas {
