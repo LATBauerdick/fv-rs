@@ -22,3 +22,48 @@ fn main() {
     println!("x3 is also {:?}", x3);
     println!("x3 is also {:#?}", x3);
 }
+
+
+
+// showMomentum :: HMeas -> String
+// showMomentum h = "pt,pz,fi,E ->" <> (show <<< fromHMeas) h
+
+// fromHMeas :: HMeas -> QMeas -- just drop the d0, z0 part... fix!!!!
+// fromHMeas (HMeas h ch w2pt) = QMeas q cq w2pt where
+//   q = subm 3 h
+//   cq = subm2 3 ch
+
+// -----------------------------------------------
+// -- QMeas
+// -- 3-vector and covariance matrix for momentum measurement
+// --
+// use std::f64::*;
+// data QMeas = QMeas Vec3 Cov3 Number
+// instance Show QMeas where
+//   show = showQMeas
+// -- print QMeas as a 4-momentum vector with errors, use pt and pz
+// showQMeas :: QMeas -> String
+fn show_hmeas (hm: &HMeas) -> String {
+    let qm: QMeas = hm.into();
+    format!("{}", qm)
+}
+
+    
+use crate::inp::h_slurp;
+#[test]
+fn test_FVT() {
+    let ds = std::fs::read_to_string("dat/tr05129e001412.dat").unwrap();
+    let VHMeas {vertex: _x, helices: hel} = h_slurp(ds).unwrap();
+    for h in hel { println!("{:?}", show_hmeas(&h)) };
+    let res = String::from("all good?");
+    assert!( 1 == 1, "test failed with '{}'", res);
+
+}
+// testFVT l5 vm = do
+//   let hel = helices vm
+//   traverse_ (putStrLn <<< showHelix) hel
+//   traverse_ (putStrLn <<< showMomentum) hel
+//   doFitTest vm l5
+//   putStrLn $ showProng <<< fit <<< hFilter l5 <<< vBlowup 10000.0 $ vm
+//   pure ()
+

@@ -8,10 +8,14 @@ use std::convert::From;
 
 pub type NA = [Number];
 pub type NA3 = [Number; 3];
+pub type NA4 = [Number; 4];
 pub type NA5 = [Number; 5];
 pub type NA6 = [Number; 6];
 pub type NA9 = [Number; 9];
+pub type NA10 = [Number; 10];
+pub type NA12 = [Number; 12];
 pub type NA15 = [Number; 15];
+pub type NA16 = [Number; 16];
 pub type NA25 = [Number; 25];
 
 enum Dim { Dim3, Dim4, Dim5 }
@@ -20,11 +24,17 @@ enum Dim { Dim3, Dim4, Dim5 }
 pub struct Vecn<T> { pub v: T }
 
 pub type Vec3 = Vecn<NA3>;
+pub type Vec4 = Vecn<NA4>;
 pub type Vec5 = Vecn<NA5>;
 
 impl fmt::Display for Vec3 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Vec3:{}", pretty_matrix(3,1,&self.v))
+    }
+}
+impl fmt::Display for Vec4 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Vec4:{}", pretty_matrix(4,1,&self.v))
     }
 }
 impl fmt::Display for Vec5 {
@@ -37,6 +47,11 @@ impl From<NA3> for Vec3 {
         Vec3 { v }
     }
 }
+impl From<NA4> for Vec4 {
+    fn from(v: NA4) -> Self {
+        Vec4 { v }
+    }
+}
 impl From<NA5> for Vec5 {
     fn from(v: NA5) -> Self {
         Vec5 { v }
@@ -46,6 +61,12 @@ impl From<Vec<Number>> for Vec3 {
     fn from(v: Vec<Number>) -> Self {
         let a: NA3 =if v.len() >= 3 { [ v[0], v[1], v[2], ] } else { [0.0;3] };
         Vec3 { v: a }
+    }
+}
+impl From<Vec<Number>> for Vec4 {
+    fn from(v: Vec<Number>) -> Self {
+        let a: NA4 =if v.len() >= 4 { [ v[0], v[1], v[2], v[3], ] } else { [0.0;4] };
+        Vec4 { v: a }
     }
 }
 impl From<Vec<Number>> for Vec5 {
@@ -71,10 +92,14 @@ enum WebEvent {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Cov<T> { pub v: T }
 pub type Cov3 = Cov<NA6>;
+pub type Cov4 = Cov<NA10>;
 pub type Cov5 = Cov<NA15>;
 
 impl Cov3 {
     // SymMat
+    pub fn diag(&self) -> NA3 {
+        [self.v[0], self.v[3], self.v[5], ]
+    }
     pub fn det(&self) -> Number {
         // [a,b,c,d,e,f] = self.v;
         let a = self.v[0];
@@ -128,6 +153,49 @@ impl From<Vec<Number>> for Cov3 {
             if v.len() == 6 { [ v[0], v[1], v[2], v[3], v[4], v[5], ] }
             else if v.len() >= 9 { [ v[0], v[1], v[2], v[4], v[5], v[8], ] }
             else { [0.0;6] }; // error
+        Cov3 { v: a }
+    }
+}
+
+impl Cov4 {
+    pub fn diag(&self) -> NA4 {
+        [self.v[0], self.v[4], self.v[7], self.v[9], ]
+    }
+}
+impl fmt::Display for Cov4 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let w = 4;
+        let idx = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
+        };
+        let mut v: NA16 = [0.0; 16];
+        for i in 0usize..4 {
+            for j in 0usize..4 {
+                v[j*w+i] = self.v[idx(i,j)];
+            }
+        }
+        write!(f, "Cov4:{}", pretty_matrix(4,4,&v))
+    }
+}
+
+impl From<NA10> for Cov4 {
+    fn from(v: NA10) -> Self {
+        Cov4 { v }
+    }
+}
+impl From<Vec<Number>> for Cov4 {
+    fn from(v: Vec<Number>) -> Self {
+        let a: NA10 =
+            if v.len() == 10 { [ v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], ] }
+            else if v.len() >= 16 { [ v[0], v[1], v[2], v[3], v[5], v[6], v[7], v[10], v[11], v[15], ] }
+            else { [0.0;10] }; // error
+        Cov4 { v: a }
+    }
+}
+impl From<&Cov5> for Cov3 { // we make a Cov3 from a Cov5 by just dropping the last R indices...
+    fn from(cv: &Cov5) -> Self {
+        let v = &cv.v;
+        let a: NA6 = { [ v[0], v[1], v[2], v[5], v[6], v[9], ] };
         Cov3 { v: a }
     }
 }
@@ -195,6 +263,22 @@ impl From<Vec<Number>> for Jac55 {
         Jac55 { v: a }
     }
 }
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Jac34 { pub v: NA12 }
+
+impl From<NA12> for Jac34 {
+    fn from(v: NA12) -> Self {
+        Jac34 { v }
+    }
+}
+
+impl fmt::Display for Jac34 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Jac34:{}", pretty_matrix(3,4,&self.v))
+    }
+}
+
 // fn new_na9_from<F: Iterator<Item=Number>>(src: F) -> NA9 {
 //     let mut result: NA9 = [0.0; 9];
 //     for (rref, val) in result.iter_mut().zip(src) {
@@ -266,6 +350,38 @@ impl Mul for Jac33 {
     }
 }
 
+impl Mul<Cov3> for Jac34 {
+    type Output = Cov4;
+    fn mul(self, other: Cov3) -> Cov4 {
+        // let l = other.v.len();
+        let n = 3; // match l 6->3, 10->4, 15->5
+        let m = self.v.len() / n; // mxn * nxn * nxm -> mxm
+        let mut vint = self.v.clone(); // mxn * nxn -> mxn, v has same size as self.v
+        let w = n; //= indVs n
+        let ixa = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
+        };
+        let ixb = |i0, j0| i0*m+j0; // = indV m
+        for i in 0..n {
+        for j in 0..m {
+        let mut s = 0.0;
+        for k in 0..n {
+            s += other.v[ixa(i,k)] * self.v[ixb(k,j)];
+        }
+        vint[ixa(i,j)] = s;
+        }}
+        let mut vp = [0.0_f64; 10];  // match l 6->3, 10->4, 15->5
+        for i in 0..m {
+        for j in 0..m {
+        let mut s = 0.0;
+        for k in 0..n {
+            s += self.v[ixb(k,i)] * vint[ixb(k,j)];
+        }
+        vp[ixa(i,j)] = s;
+        }}
+        Cov4{v: vp}
+    }
+}
 impl Mul<Jac55> for Jac55 {
     type Output = Jac55;
     fn mul(mut self, other: Jac55) -> Jac55 {

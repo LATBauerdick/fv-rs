@@ -21,7 +21,6 @@ pub fn h_slurp(ds: String) -> Option<VHMeas> {
 }
 
 fn h_slurpp(inp: Vec<f64>) -> Option<VHMeas> {
-    println!("h_slurp inp = {:?}", inp);
     let v0: Vec3   = inp[..3].to_vec().into();       // initial vertex pos
     let cv0: Cov3  = inp[3..12].to_vec().into();     // cov matrix
     let v    = XMeas(v0, cv0);
