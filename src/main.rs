@@ -43,18 +43,13 @@ fn main() {
 //   show = showQMeas
 // -- print QMeas as a 4-momentum vector with errors, use pt and pz
 // showQMeas :: QMeas -> String
-fn show_hmeas (hm: &HMeas) -> String {
-    let qm: QMeas = hm.into();
-    format!("{}", qm)
-}
-
-    
 use crate::inp::h_slurp;
 #[test]
-fn test_FVT() {
+fn test_fvt() {
     let ds = std::fs::read_to_string("dat/tr05129e001412.dat").unwrap();
-    let VHMeas {vertex: _x, helices: hel} = h_slurp(ds).unwrap();
-    for h in hel { println!("{:?}", show_hmeas(&h)) };
+    let VHMeas {vertex: x, helices: hel} = h_slurp(ds).unwrap();
+    for h in hel { println!("{}", QMeas::from(&h)) };
+    println!("initial vertex position -> {}", x);
     let res = String::from("all good?");
     assert!( 1 == 1, "test failed with '{}'", res);
 

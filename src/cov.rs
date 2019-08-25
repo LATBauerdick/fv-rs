@@ -368,16 +368,21 @@ impl Mul<Cov3> for Jac34 {
         for k in 0..n {
             s += other.v[ixa(i,k)] * self.v[ixb(k,j)];
         }
-        vint[ixa(i,j)] = s;
+        vint[ixb(i,j)] = s;
         }}
         let mut vp = [0.0_f64; 10];  // match l 6->3, 10->4, 15->5
+        let ixi = |i0, j0| i0*m+j0; // = indV m
+        let w = m; //= indVs m
+        let ixc = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
+        };
         for i in 0..m {
-        for j in 0..m {
+        for j in i..m {
         let mut s = 0.0;
         for k in 0..n {
-            s += self.v[ixb(k,i)] * vint[ixb(k,j)];
+            s += self.v[ixi(k,i)] * vint[ixi(k,j)];
         }
-        vp[ixa(i,j)] = s;
+        vp[ixc(i,j)] = s;
         }}
         Cov4{v: vp}
     }
