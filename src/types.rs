@@ -7,10 +7,23 @@ use std::convert::From;
 
 pub type Number = f64;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub struct Prong<'a> {
+                    pub n_prong: usize,
+                    pub fit_vertex: XMeas,
+                    pub fit_momenta: Vec<QMeas>,
+                    pub fit_chi2s: Vec<Chi2>,
+                    pub measurements: &'a VHMeas,
+                }
+
+type Chi2 = Number;
+
+#[derive(Debug, Clone)]
 pub struct XMeas(pub Vec3, pub Cov3);
 impl XMeas {
-
+    pub fn blowup(&self, scale: f64) -> XMeas {
+        XMeas(self.0.clone(), self.1.scale_diag(scale))
+    }
 }
 impl fmt::Display for XMeas {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -32,7 +45,7 @@ impl fmt::Display for XMeas {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HMeas(pub Vec5, pub Cov5, pub Number);
 impl HMeas {
 
@@ -52,7 +65,7 @@ impl fmt::Display for HMeas {
         write!(fmt, "Helix ->{}{}{}{}{}", s00, s01, s02, s03, s04)
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct QMeas(pub Vec3, pub Cov3, pub Number);
 impl QMeas {
 
@@ -95,7 +108,7 @@ impl fmt::Display for QMeas {
         write!(fmt, "pt,pz,fi,E -> {}GeV", sp)
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct VHMeas {
     pub vertex:  XMeas,
     pub helices: Vec<HMeas>,

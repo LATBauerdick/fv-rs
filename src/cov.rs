@@ -124,6 +124,9 @@ impl Cov3 {
         do_cholinv(&mut xx[..], 3);
         Cov3 { v: *xx }
     }
+    pub fn scale_diag(&self, s: f64) -> Cov3 {
+        Cov {v: [self.v[0]*s, self.v[1], self.v[2], self.v[3]*s, self.v[4], self.v[5]*s, ]}
+    }
 }
 
 impl fmt::Display for Cov3 {
