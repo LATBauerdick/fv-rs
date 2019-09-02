@@ -39,9 +39,9 @@ fn test_fvt() {
     println!("init vtx pos -> {}", x);
 
     let vm = VHMeas {vertex: x.blowup(10000.0), helices: hel};
-    // for h in &hel { println!("{}", PMeas::from(&QMeas::from(h))) };
+    for h in &vm.helices { println!("{}", PMeas::from(&QMeas::from(h))) };
     let pl: Vec<PMeas> = vm.helices.into_iter().map( |h| PMeas::from(&QMeas::from(&h))).collect();
-
+    // println!("Inv Mass {} helix{}", pl.len(), inv_mass(pl));
 
     println!("---------------------------------------------------------");
     let res = String::from("all good?");

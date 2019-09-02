@@ -111,10 +111,49 @@ impl fmt::Display for QMeas {
 }
 
 #[derive(Debug, Clone)]
+pub struct MMeas{pub m: Number, pub dm: Number,}
+
+#[derive(Debug, Clone)]
 pub struct PMeas(pub Vec4, pub Cov4);
 impl PMeas {
+    fn pmass(&self) -> MMeas {
+    let p     = &self.0;
+    let cp    = &self.1;
+    let px    = p.v[0];
+    let py    = p.v[1];
+    let pz    = p.v[2];
+    let e     = p.v[3];
+    let c11   = cp.v[0];
+    let c12   = cp.v[1];
+    let c13   = cp.v[2];
+    let c14   = cp.v[3];
+    let c22   = cp.v[4];
+    let c23   = cp.v[5];
+    let c24   = cp.v[6];
+    let c33   = cp.v[7];
+    let c34   = cp.v[8];
+    let c44   = cp.v[9];
+    let m     = (e*e-px*px-py*py-pz*pz).max(0_f64).sqrt();
+    let sigm0 = px*c11*px + py*c22*py + pz*c33*pz + e*c44*e +
+            2.0*(px*(c12*py + c13*pz - c14*e)
+               + py*(c23*pz - c24*e)
+               - pz*c34*e);
+    let dm    = sigm0.max(0_f64).sqrt() / m;
+        MMeas{m, dm}
+}
 
 }
+impl fmt::Display for PMeas {
+// -- print PMeas as a 4-momentum vector px,py,pz,E with errors
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let PMeas(p, cp) = self;
+        let sp: Vec<Number> = cp.diag().to_vec().into_iter().map(|x| x.sqrt()).collect();
+        write!(fmt, "{:8.3} +-{:8.3}{:8.3} +-{:8.3}{:8.3} +-{:8.3}{:8.3} +-{:8.3}", p.v[0], sp[0], p.v[1], sp[1], p.v[2], sp[2], p.v[3], sp[3])
+    }
+}
+// pub fn inv_mass(pl: Vec<PMeas>) -> MMeas {
+//     pl.iter().sum().pmass()
+// }
 use std::f64;
 impl From<&QMeas> for PMeas {
     fn from(qm: &QMeas) -> Self {

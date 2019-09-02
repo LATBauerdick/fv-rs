@@ -611,12 +611,12 @@ det this                {}
     ch5.clone() * ch5.cholinv(),
     ch5.det(),
     );
-    print!("{}", res);
+    // print!("{}", res);
 
     let v3 = Vec3 { v: [10.0,11.0,12.0] };
     // res.push_str(&format!("Vec *. Vec = {}\n", (v3.clone() * v3).to_string()));
-    println!("Vec * Vec = {}\n", v3.clone() * v3);
-    println!("Cov *. Cov = {}\n", (Cov3 {v: [1.0,2.0,3.0,4.0,5.0,6.0]}) * (Cov3 {v: [0.0,0.0,1.0,1.0,0.0,0.0]}));
+    // println!("Vec * Vec = {}\n", v3.clone() * v3);
+    // println!("Cov *. Cov = {}\n", (Cov3 {v: [1.0,2.0,3.0,4.0,5.0,6.0]}) * (Cov3 {v: [0.0,0.0,1.0,1.0,0.0,0.0]}));
 
     assert!(true, "test failed with '{}'", res);
 }
