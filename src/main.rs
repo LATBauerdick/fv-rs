@@ -39,7 +39,8 @@ fn test_fvt() {
     println!("init vtx pos -> {}", x);
 
     let vm = VHMeas {vertex: x.blowup(10000.0), helices: hel};
-    // let pl = map(fromQMeas <<< fromHMeas) $ helices
+    // for h in &hel { println!("{}", PMeas::from(&QMeas::from(h))) };
+    let pl: Vec<PMeas> = vm.helices.into_iter().map( |h| PMeas::from(&QMeas::from(&h))).collect();
 
 
     println!("---------------------------------------------------------");

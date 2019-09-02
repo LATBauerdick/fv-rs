@@ -65,6 +65,7 @@ impl fmt::Display for HMeas {
         write!(fmt, "Helix ->{}{}{}{}{}", s00, s01, s02, s03, s04)
     }
 }
+
 #[derive(Debug, Clone)]
 pub struct QMeas(pub Vec3, pub Cov3, pub Number);
 impl QMeas {
@@ -105,7 +106,64 @@ impl fmt::Display for QMeas {
         let dp: Vec<Number> = cqp.diag().to_vec().into_iter().map(|x| x.sqrt()).collect();
         let dpp        = [dp[0], dp[1], dp[2]*180.0/PI, dp[3]];
         let sp         = pp[..].iter().zip(&dpp).fold("".to_string(), |s, x|{ f(&s, x) });
-        write!(fmt, "pt,pz,fi,E -> {}GeV", sp)
+        write!(fmt, "qt,qz,fi,E -> {}GeV", sp)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct PMeas(pub Vec4, pub Cov4);
+impl PMeas {
+
+}
+use std::f64;
+impl From<&QMeas> for PMeas {
+    fn from(qm: &QMeas) -> Self {
+        let q    = &qm.0;
+        let cq   = &qm.1;
+        let w2pt = &qm.2;
+        let m     = MPI;
+        let w     = q.v[0];
+        let tl    = q.v[1];
+        let psi0  = q.v[2];
+        let (sph, cph)   = f64::sin_cos(psi0);
+        let  pt   = w2pt / w.abs();
+        let px   = pt * cph;
+        let py   = pt * sph;
+        let pz   = pt * tl;
+        let sqr  = |x| x*x;
+        let e    = f64::sqrt(sqr(px) + py*py + pz*pz + m*m);
+        let ps   = w2pt / w;
+        let dpdk = ps*ps/w2pt;
+        let c11  = cq.v[0];
+        let c12  = cq.v[1];
+        let c13  = cq.v[2];
+        let c22  = cq.v[3];
+        let c23  = cq.v[4];
+        let c33  = cq.v[5];
+        let xy   = 2.0*ps*dpdk*cph*sph*c13;
+        let sxx  = sqr (dpdk*cph) * c11 + sqr (ps*sph) * c33 + xy;
+        let  sxy  = cph*sph*(dpdk*dpdk*c11 - ps*ps*c33) +
+           ps*dpdk*(sph*sph-cph*cph)*c13;
+        let  syy  = sqr (dpdk*sph) * c11 + sqr (ps*cph) * c33 - xy;
+        let  sxz  = dpdk*dpdk*cph*tl*c11 -
+           ps*dpdk*(cph*c12-sph*tl*c13) -
+           ps*ps*sph*c23;
+        let  syz  = dpdk*dpdk*sph*tl*c11 -
+           ps*dpdk*(sph*c12 + cph*tl*c13) +
+           ps*ps*cph*c23;
+        let  szz  = sqr (dpdk*tl) * c11 + ps*ps*c22 -
+           2.0*ps*dpdk*tl*c12;
+        let  sxe  = (px*sxx + py*sxy + pz*sxz)/e;
+        let  sye  = (px*sxy + py*syy + pz*syz)/e;
+        let  sze  = (px*sxz + py*syz + pz*szz)/e;
+        let  see  = (px*px*sxx + py*py*syy + pz*pz*szz +
+         2.0*(px*(py*sxy + pz*sxz) + py*pz*syz))/e/e;
+        let cp: Cov4  = [ sxx, sxy, sxz, sxe
+                             , syy, syz, sye
+                                  , szz, sze
+                                       , see].into();
+        let p: Vec4   = [px,py,pz,e].into();
+        PMeas(p,cp)
     }
 }
 #[derive(Debug, Clone)]
