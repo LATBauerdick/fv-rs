@@ -26,10 +26,13 @@ impl VHMeas {
 //   q_e   = J.hv2q h v
 
     fn k_smooth(&self, v: XMeas) -> Prong {
+        let n = self.helices.len();
+        let mut ql: Vec<QMeas> = Vec::new();
+        for i in 0..n { ql.push(QMeas::from(&self.helices[i])); }
         Prong {n_prong: 0,
         fit_vertex: v,
-        fit_momenta: Vec::new(),
-        fit_chi2s: Vec::new(),
+        fit_momenta: ql,
+        fit_chi2s: vec![1.0; n],
         measurements: &self,
         }
     }
