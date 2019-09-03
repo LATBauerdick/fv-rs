@@ -5,13 +5,13 @@ use crate::cov::*;
 
 pub fn h_slurp(ds: String) -> Option<VHMeas> {
     let ws = ds.split_whitespace().collect::<Vec<&str>>();
-    println!("h_slurp len = {:?}", ws.len());
+    // println!("h_slurp len = {:?}", ws.len());
 
     // sometimes there is PU information at the front -- skip for now
     let npu: Option<usize> = if ws[0] == "PU_zpositions:" { 
         Some(ws[1].parse().unwrap())
     } else { None };
-    println!("h_slurp PU = {:?}", npu);
+    // println!("h_slurp PU = {:?}", npu);
 
     let varr = match npu {
         None    => ws.iter().map(|f| f.parse::<f64>().unwrap()).collect(),
@@ -24,7 +24,7 @@ fn h_slurpp(inp: Vec<f64>) -> Option<VHMeas> {
     let v0: Vec3   = inp[..3].to_vec().into();       // initial vertex pos
     let cv0: Cov3  = inp[3..12].to_vec().into();     // cov matrix
     let v    = XMeas(v0, cv0);
-    println!("h_slurp v = {:?}", v);
+    // println!("h_slurp v = {:?}", v);
     let w2pt = inp[12];                    // how to calc pt from w; 1 in case of CMS
     let nt   = inp[13] as usize;           // number of helices to follow
       // f     = case w2pt of
@@ -32,8 +32,8 @@ fn h_slurpp(inp: Vec<f64>) -> Option<VHMeas> {
       //             otherwise -> nxtH   -- Aleph case
       // hl    = mapMaybe (\i -> f w2pt (slice (i*30+14) (i*30+44) inp)) $ range 0 (nt-1)
 
-    println!("h_slurp w2pt = {:?}", w2pt);
-    println!("h_slurp nt = {:?}", nt);
+    // println!("h_slurp w2pt = {:?}", w2pt);
+    // println!("h_slurp nt = {:?}", nt);
     let mut hl: Vec<HMeas> = Vec::new();
     let aleph = w2pt != 1.0;
     for i in 0..nt {
@@ -41,7 +41,7 @@ fn h_slurpp(inp: Vec<f64>) -> Option<VHMeas> {
                     else { nxt_hp(inp[i*30+14..i*30+44].to_vec()).unwrap() };
         hl.push(h0);
     }
-    println!("h_slurp h0 = {:?}", hl[0]);
+    // println!("h_slurp h0 = {:?}", hl[0]);
     Some(VHMeas{ vertex: v, helices: hl })
 }
 

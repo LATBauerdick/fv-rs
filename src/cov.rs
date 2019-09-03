@@ -195,6 +195,14 @@ impl From<Vec<Number>> for Cov4 {
         Cov4 { v: a }
     }
 }
+use std::ops::Add;
+impl Add<&Cov4> for Cov4 {
+    type Output = Cov4;
+    fn add(mut self, other: &Cov4) -> Cov4 {
+        for i in 0..10 { self.v[i] += other.v[i]; }
+        self
+    }
+}
 impl Cov5 {
     pub fn diag(&self) -> NA5 {
         [self.v[0], self.v[5], self.v[9], self.v[12], self.v[14], ]
@@ -298,7 +306,6 @@ impl fmt::Display for Jac34 {
 //     new_na9_from(a.iter().zip(&b).map(|(x, y)| f(*x, *y)))
 // }
 
-use std::ops::Add;
 impl Add for Cov3 {
     type Output = Cov3;
     fn add(mut self, other: Cov3) -> Cov3 {
@@ -321,6 +328,13 @@ impl Add for Jac55 {
     type Output = Jac55;
     fn add(mut self, other: Jac55) -> Jac55 {
         for i in 0..25 { self.v[i] += other.v[i]; }
+        self
+    }
+}
+impl Add<&Vec4> for Vec4 {
+    type Output = Vec4;
+    fn add(mut self, other: &Vec4) -> Vec4 {
+        for i in 0..4 { self.v[i] += other.v[i]; }
         self
     }
 }

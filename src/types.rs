@@ -112,6 +112,12 @@ impl fmt::Display for QMeas {
 
 #[derive(Debug, Clone)]
 pub struct MMeas{pub m: Number, pub dm: Number,}
+impl fmt::Display for MMeas {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let MMeas{m, dm} = self;
+        write!(fmt, " {:6.1} +-{:6.1} MeV", m*1000.0, dm*1000.0)
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct PMeas(pub Vec4, pub Cov4);
@@ -151,9 +157,18 @@ impl fmt::Display for PMeas {
         write!(fmt, "{:8.3} +-{:8.3}{:8.3} +-{:8.3}{:8.3} +-{:8.3}{:8.3} +-{:8.3}", p.v[0], sp[0], p.v[1], sp[1], p.v[2], sp[2], p.v[3], sp[3])
     }
 }
-// pub fn inv_mass(pl: Vec<PMeas>) -> MMeas {
-//     pl.iter().sum().pmass()
-// }
+use std::ops::Add;
+impl Add<&PMeas> for PMeas {
+    type Output = PMeas;
+    fn add(self, other: &PMeas) -> PMeas {
+        PMeas(self.0+&other.0, self.1+&other.1)
+    }
+}
+pub fn inv_mass(pl: Vec<PMeas>) -> MMeas {
+    let mut ps = pl[0].clone();
+    for p in &pl[1..] { ps = ps + p; }
+    ps.pmass()
+}
 use std::f64;
 impl From<&QMeas> for PMeas {
     fn from(qm: &QMeas) -> Self {

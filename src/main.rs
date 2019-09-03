@@ -10,6 +10,7 @@ mod inp;
 
 //use crate::types::*;
 use crate::cov::*;
+use crate::fit::*;
 
 
 fn main() {
@@ -40,8 +41,19 @@ fn test_fvt() {
 
     let vm = VHMeas {vertex: x.blowup(10000.0), helices: hel};
     for h in &vm.helices { println!("{}", PMeas::from(&QMeas::from(h))) };
-    let pl: Vec<PMeas> = vm.helices.into_iter().map( |h| PMeas::from(&QMeas::from(&h))).collect();
-    // println!("Inv Mass {} helix{}", pl.len(), inv_mass(pl));
+    {
+        // let pl: Vec<PMeas> = vm.helices.into_iter().map( |h| PMeas::from(&QMeas::from(&h))).collect();
+        let mut pl: Vec<PMeas> = Vec::new();
+        for i in 0..6 { pl.push(PMeas::from(&QMeas::from(&vm.helices[i]))); }
+        println!("Inv Mass {} helix{}", pl.len(), inv_mass(pl));
+    }
+    let l5 = vec![0_usize,2,3,4,5];
+    let mut pl5: Vec<PMeas> = Vec::new();
+    for i in l5 { pl5.push(PMeas::from(&QMeas::from(&vm.helices[i]))); }
+    for p in &pl5 { println!("{}", p) };
+    println!("Inv Mass {} helix{}", pl5.len(), inv_mass(pl5));
+    println!("Fitting Vertex --------------------");
+    let Prong {fit_vertex: vf, fit_momenta: ql, fit_chi2s: cl, n_prong: n, measurements: m} = fit(&vm);
 
     println!("---------------------------------------------------------");
     let res = String::from("all good?");
