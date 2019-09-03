@@ -39,9 +39,9 @@ impl fmt::Display for XMeas {
         let dy         = s2v[1];
         let dz         = s2v[2];
         fn f(x: &Number, dx: &Number) -> String {
-            format!("{:7.2} +-{:7.2} ", *x, *dx)
+            format!("{:7.2} +-{:7.2}", *x, *dx)
         }
-        write!(fmt, "(r,z) =({:7.2},{:7.2}), x y z = {}{}{}", f64::sqrt(x*x + y*y), z, f(&x, &dx), f(&y, &dy), f(&z, &dz))
+        write!(fmt, "(r,z) =({:7.2}, {:7.2}), x y z ={}{}{}", f64::sqrt(x*x + y*y), z, f(&x, &dx), f(&y, &dy), f(&z, &dz))
     }
 }
 
@@ -87,7 +87,7 @@ impl fmt::Display for QMeas {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let QMeas(q, cq, w2pt) = self;
         fn f(s: &String, (x, dx): (&Number, &Number)) -> String {
-            format!("{}{:8.3} +-{:8.3} ", s, *x, *dx)
+            format!("{}{:8.3} +-{:8.3}", s, *x, *dx)
         }
         let m           = MPI;
         let wp          = w2pt;
@@ -106,7 +106,7 @@ impl fmt::Display for QMeas {
         let dp: Vec<Number> = cqp.diag().to_vec().into_iter().map(|x| x.sqrt()).collect();
         let dpp        = [dp[0], dp[1], dp[2]*180.0/PI, dp[3]];
         let sp         = pp[..].iter().zip(&dpp).fold("".to_string(), |s, x|{ f(&s, x) });
-        write!(fmt, "qt,qz,fi,E -> {}GeV", sp)
+        write!(fmt, "qt,qz,fi,E ->{} GeV", sp)
     }
 }
 
@@ -154,7 +154,7 @@ impl fmt::Display for PMeas {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let PMeas(p, cp) = self;
         let sp: Vec<Number> = cp.diag().to_vec().into_iter().map(|x| x.sqrt()).collect();
-        write!(fmt, "{:8.3} +-{:8.3}{:8.3} +-{:8.3}{:8.3} +-{:8.3}{:8.3} +-{:8.3}", p.v[0], sp[0], p.v[1], sp[1], p.v[2], sp[2], p.v[3], sp[3])
+        write!(fmt, "px,py,pz,E -> {:8.3} +-{:8.3}{:8.3} +-{:8.3}{:8.3} +-{:8.3}{:8.3} +-{:8.3}", p.v[0], sp[0], p.v[1], sp[1], p.v[2], sp[2], p.v[3], sp[3])
     }
 }
 use std::ops::Add;

@@ -31,52 +31,53 @@ fn test_fvt() {
     println!("test_fvt-------------------------------------------------");
     let ds = std::fs::read_to_string("dat/tr05129e001412.dat").unwrap();
     let VHMeas {vertex: x, helices: hel} = h_slurp(ds).unwrap();
-    for h in &hel { println!("{}", h) };
-    for h in &hel { println!("{}", QMeas::from(h)) };
 //   doFitTest vm l5
-//   putStrLn $ showProng <<< fit <<< hFilter l5 <<< vBlowup 10000.0 $ vm
-
-
-    println!("init vtx pos -> {}", x);
-
     let vm = VHMeas {vertex: x.blowup(10000.0), helices: hel};
-    for h in &vm.helices { println!("{}", PMeas::from(&QMeas::from(h))) };
-    {
+    let l5 = vec![0_usize,2,3,4,5];
+
+    for h in &vm.helices { println!("{}", h) };
+    for h in &vm.helices { println!("{}", QMeas::from(h)) };
+
+    println!("initial vertex position -> {}", vm.vertex);
+
+    // for h in &vm.helices { println!("{}", PMeas::from(&QMeas::from(h))) };
+
     // let pl: Vec<PMeas> = vm.helices.into_iter().map( |h| PMeas::from(&QMeas::from(&h))).collect();
     let mut pl: Vec<PMeas> = Vec::new();
     for i in 0..6 { pl.push(PMeas::from(&QMeas::from(&vm.helices[i]))); }
     println!("Inv Mass {} helix{}", pl.len(), inv_mass(pl));
-    }
-    {
-    let l5 = vec![0_usize,2,3,4,5];
+
     let mut pl5: Vec<PMeas> = Vec::new();
-    for i in l5 { pl5.push(PMeas::from(&QMeas::from(&vm.helices[i]))); }
-    for p in &pl5 { println!("{}", p) };
+    for &i in &l5 { pl5.push(PMeas::from(&QMeas::from(&vm.helices[i]))); }
+    // for p in &pl5 { println!("{}", p) };
     println!("Inv Mass {} helix{}", pl5.len(), inv_mass(pl5));
-    }
 
     println!("Fitting Vertex --------------------");
-    let Prong {fit_vertex: vf, fit_momenta: ql, fit_chi2s: cl, n_prong: n, measurements: m} = fit(&vm);
+    let Prong {fit_vertex: vf, fit_momenta: qs, fit_chi2s: cs, n_prong: n, measurements: ms} = fit(&vm);
     println!("Fitted vertex -> {}", vf);
 
-    // for i in 0..5 { println!(showQChi2(ql[i], cl[i])); }
+    for &i in &l5 { println!("q chi2 ->{:6.1} {}", cs[i], qs[i]); }
 
     let mut pl: Vec<PMeas> = Vec::new();
-    for i in 0..6 { pl.push(PMeas::from(&ql[i])); }
+    for i in 0..6 { pl.push(PMeas::from(&qs[i])); }
     println!("Inv Mass {} fit{}", pl.len(), inv_mass(pl));
 
-    let l5 = vec![0_usize,2,3,4,5];
     let mut pl5: Vec<PMeas> = Vec::new();
-    for i in l5 { pl5.push(PMeas::from(&ql[i])); }
+    for &i in &l5 { pl5.push(PMeas::from(&qs[i])); }
     println!("Inv Mass {} fit{}", pl5.len(), inv_mass(pl5));
 
     println!("Refitting Vertex-----------------");
-    // println!("Refitted vertex -> {}", fv);
+    let fvm = vm; // hFilter l5 vm
+    let Prong {fit_vertex: fv, fit_momenta: fqs, fit_chi2s: fcs, n_prong: fnp, measurements: fms} = fit(&fvm);
+    println!("Refitted vertex -> {}", fv);
+
+    // for i in 0..5 { println!(showQChi2(ql[i], cl[i])); }
 
     println!("---------------------------------------------------------");
     let res = String::from("all good?");
     assert!( 1 == 1, "test failed with '{}'", res);
 
+//   putStrLn $ showProng <<< fit <<< hFilter l5 <<< vBlowup 10000.0 $ vm
 }
 
 // doFitTest :: VHMeas
