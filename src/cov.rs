@@ -627,7 +627,7 @@ det this                {}
     );
     // print!("{}", res);
 
-    let v3 = Vec3 { v: [10.0,11.0,12.0] };
+    // let v3 = Vec3 { v: [10.0,11.0,12.0] };
     // res.push_str(&format!("Vec *. Vec = {}\n", (v3.clone() * v3).to_string()));
     // println!("Vec * Vec = {}\n", v3.clone() * v3);
     // println!("Cov *. Cov = {}\n", (Cov3 {v: [1.0,2.0,3.0,4.0,5.0,6.0]}) * (Cov3 {v: [0.0,0.0,1.0,1.0,0.0,0.0]}));

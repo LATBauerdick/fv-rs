@@ -29,7 +29,7 @@ impl VHMeas {
         let n = self.helices.len();
         let mut ql: Vec<QMeas> = Vec::new();
         for i in 0..n { ql.push(QMeas::from(&self.helices[i])); }
-        Prong {n_prong: 0,
+        Prong {n_prong: n,
         fit_vertex: v,
         fit_momenta: ql,
         fit_chi2s: vec![1.0; n],

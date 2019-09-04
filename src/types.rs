@@ -122,7 +122,7 @@ impl fmt::Display for MMeas {
 #[derive(Debug, Clone)]
 pub struct PMeas(pub Vec4, pub Cov4);
 impl PMeas {
-    fn pmass(&self) -> MMeas {
+    fn mass(&self) -> MMeas {
     let p     = &self.0;
     let cp    = &self.1;
     let px    = p.v[0];
@@ -146,8 +146,7 @@ impl PMeas {
                - pz*c34*e);
     let dm    = sigm0.max(0_f64).sqrt() / m;
         MMeas{m, dm}
-}
-
+    }
 }
 impl fmt::Display for PMeas {
 // -- print PMeas as a 4-momentum vector px,py,pz,E with errors
@@ -164,10 +163,10 @@ impl Add<&PMeas> for PMeas {
         PMeas(self.0+&other.0, self.1+&other.1)
     }
 }
-pub fn inv_mass(pl: Vec<PMeas>) -> MMeas {
-    let mut ps = pl[0].clone();
-    for p in &pl[1..] { ps = ps + p; }
-    ps.pmass()
+pub fn inv_mass(ps: Vec<PMeas>) -> MMeas {
+    let psum = ps[1..].iter()
+                      .fold( ps[0].clone(), |acc, p| acc + p ); // PMeas should get a Default
+    psum.mass()
 }
 use std::f64;
 impl From<&QMeas> for PMeas {

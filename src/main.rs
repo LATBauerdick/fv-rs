@@ -42,79 +42,65 @@ fn test_fvt() {
 
     // for h in &vm.helices { println!("{}", PMeas::from(&QMeas::from(h))) };
 
-    // let pl: Vec<PMeas> = vm.helices.into_iter().map( |h| PMeas::from(&QMeas::from(&h))).collect();
-    let mut pl: Vec<PMeas> = Vec::new();
-    for i in 0..6 { pl.push(PMeas::from(&QMeas::from(&vm.helices[i]))); }
-    println!("Inv Mass {} helix{}", pl.len(), inv_mass(pl));
+    let mm = inv_mass(
+            vm.helices
+            .iter()
+            .map( |h| PMeas::from(&QMeas::from(h)))
+            .collect()
+        );
+    println!("Inv Mass {} helix{}", vm.helices.len(), mm);
 
-    let mut pl5: Vec<PMeas> = Vec::new();
-    for &i in &l5 { pl5.push(PMeas::from(&QMeas::from(&vm.helices[i]))); }
+    let mm = inv_mass(
+        l5.iter()
+        .map( |i| PMeas::from(&QMeas::from(&vm.helices[*i])) )
+        .collect()
+    );
+    println!("Inv Mass {} helix{}", l5.len(), mm);
     // for p in &pl5 { println!("{}", p) };
-    println!("Inv Mass {} helix{}", pl5.len(), inv_mass(pl5));
 
     println!("Fitting Vertex --------------------");
-    let Prong {fit_vertex: vf, fit_momenta: qs, fit_chi2s: cs, n_prong: n, measurements: ms} = fit(&vm);
+    let Prong { fit_vertex: vf,
+                fit_momenta: qs,
+                fit_chi2s: cs,
+                n_prong: np,
+                measurements: _ms
+                } = fit(&vm);
     println!("Fitted vertex -> {}", vf);
 
-    for &i in &l5 { println!("q chi2 ->{:6.1} {}", cs[i], qs[i]); }
+    for i in 0..np { println!("q chi2 ->{:6.1} {}", cs[i], qs[i]); }
 
     let mut pl: Vec<PMeas> = Vec::new();
-    for i in 0..6 { pl.push(PMeas::from(&qs[i])); }
-    println!("Inv Mass {} fit{}", pl.len(), inv_mass(pl));
+    for q in &qs { pl.push(PMeas::from(q)); }
+    println!("Inv Mass {} fit{}", np, inv_mass(pl));
 
     let mut pl5: Vec<PMeas> = Vec::new();
     for &i in &l5 { pl5.push(PMeas::from(&qs[i])); }
-    println!("Inv Mass {} fit{}", pl5.len(), inv_mass(pl5));
+    println!("Inv Mass {} fit{}", l5.len(), inv_mass(pl5));
 
     println!("Refitting Vertex-----------------");
-    let fvm = vm; // hFilter l5 vm
-    let Prong {fit_vertex: fv, fit_momenta: fqs, fit_chi2s: fcs, n_prong: fnp, measurements: fms} = fit(&fvm);
+    let h5s = l5.iter().map( |i| vm.helices[*i].clone() ).collect();
+    let vmp = VHMeas{ helices: h5s, ..vm };
+    let Prong {fit_vertex: fv,
+        fit_momenta: fqs,
+        fit_chi2s: fcs,
+        n_prong: fnp,
+        measurements: _} = fit(&vmp);
     println!("Refitted vertex -> {}", fv);
+    for i in 0..fnp { println!("q chi2 ->{:6.1} {}", fcs[i], fqs[i]); }
 
-    // for i in 0..5 { println!(showQChi2(ql[i], cl[i])); }
+    let mm = inv_mass(
+            fqs
+            .iter()
+            .map( |q| PMeas::from(q) )
+            .collect()
+        );
+    println!("Inv Mass {} refit{}", fnp, mm);
 
-    println!("---------------------------------------------------------");
+    println!("Final vertex -> {}", fv);
+    println!("end of doFitTest------------------------------------------");
+
     let res = String::from("all good?");
     assert!( 1 == 1, "test failed with '{}'", res);
 
-//   putStrLn $ showProng <<< fit <<< hFilter l5 <<< vBlowup 10000.0 $ vm
 }
 
-// doFitTest :: VHMeas
-//             -> List Int
-//             -> IO ()
-// doFitTest vm' l5 = do
-//   let vm = vBlowup 10000.0 vm'
-//   let showLen xs = show $ length xs
-//       showQChi2 :: (QMeas, Chi2) -> String
-//       showQChi2 (qm, (Chi2 chi2)) = "q"
-//                                 <> " chi2 ->" <> to1fix chi2
-//                                 <> " pt,pz,fi,E ->"
-//                                 <> show qm
-
-//   putStrLn $           "initial vertex position -> " <> show ((vertex vm)::XMeas)
-
-//   let pl         = map (fromQMeas <<< fromHMeas) $ helices vm
-//   putStrLn $ "Inv Mass " <> showLen pl <> " helix" <> show (invMass pl)
-//   let pl5        = map (fromQMeas <<< fromHMeas) (helices <<< hFilter l5 $ vm)
-//   putStrLn $ "Inv Mass " <> showLen pl5 <> " helix" <> show (invMass pl5)
-
-//   putStrLn             "Fitting Vertex --------------------"
-//   let -- pr = fit vm
-//       Prong {fitVertex= vf, fitMomenta= ql, fitChi2s= cl} = fit vm
-//   putStrLn $           "Fitted vertex -> " <> show vf
-//   traverse_ (putStrLn <<< showQChi2) $ zip ql cl
-//   putStrLn $ "Inv Mass " <> show (length ql) <> " fit"
-//                     <> show (invMass (map fromQMeas ql))
-
-//   let m5 = invMass <<< map fromQMeas <<< iflt l5 $ ql
-//   putStrLn $ "Inv Mass " <> show (length l5) <> " fit" <> show m5
-
-//   putStrLn $           "Refitting Vertex-----------------"
-//   let Prong {fitVertex=fv, fitMomenta=fqs, fitChi2s=fcs, nProng=np} = fit <<< hFilter l5 $ vm
-//   putStrLn $           "Refitted vertex -> " <> show fv
-//   traverse_ (putStrLn <<< showQChi2) $ zip fqs fcs
-//   putStrLn $           "Inv Mass " <> show np <> " refit" 
-//                        <> (show <<< invMass <<< map fromQMeas $ fqs)
-//   putStrLn $           "Final vertex -> " <> show fv
-//   putStrLn $           "end of doFitTest------------------------------------------"
