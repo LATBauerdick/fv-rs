@@ -10,7 +10,6 @@ mod inp;
 
 //use crate::types::*;
 use crate::cov::*;
-use crate::fit::*;
 
 
 fn main() {
@@ -25,9 +24,10 @@ fn main() {
     println!("x3 is also {:#?}", x3);
 }
 
-use crate::inp::h_slurp;
 #[test]
 fn test_fvt() {
+use crate::inp::h_slurp;
+use crate::fit::*;
     println!("test_fvt-------------------------------------------------");
     let ds = std::fs::read_to_string("dat/tr05129e001412.dat").unwrap();
     let VHMeas {vertex: x, helices: hel} = h_slurp(ds).unwrap();
@@ -42,19 +42,17 @@ fn test_fvt() {
 
     // for h in &vm.helices { println!("{}", PMeas::from(&QMeas::from(h))) };
 
-    let mm = inv_mass(
-            vm.helices
-            .iter()
-            .map( |h| PMeas::from(&QMeas::from(h)))
-            .collect()
-        );
+    let mm = inv_mass( &vm.helices
+                        .iter()
+                        .map( |h| PMeas::from(&QMeas::from(h)) )
+                        .collect()
+    );
     println!("Inv Mass {} helix{}", vm.helices.len(), mm);
 
-    let mm = inv_mass(
-        l5.iter()
-        .map( |i| PMeas::from(&QMeas::from(&vm.helices[*i])) )
-        .collect()
-    );
+    let mm = inv_mass( &l5.iter()
+                        .map( |i| PMeas::from(&QMeas::from(&vm.helices[*i])) )
+                        .collect()
+                    );
     println!("Inv Mass {} helix{}", l5.len(), mm);
     // for p in &pl5 { println!("{}", p) };
 
@@ -71,11 +69,11 @@ fn test_fvt() {
 
     let mut pl: Vec<PMeas> = Vec::new();
     for q in &qs { pl.push(PMeas::from(q)); }
-    println!("Inv Mass {} fit{}", np, inv_mass(pl));
+    println!("Inv Mass {} fit{}", np, inv_mass(&pl));
 
     let mut pl5: Vec<PMeas> = Vec::new();
     for &i in &l5 { pl5.push(PMeas::from(&qs[i])); }
-    println!("Inv Mass {} fit{}", l5.len(), inv_mass(pl5));
+    println!("Inv Mass {} fit{}", l5.len(), inv_mass(&pl5));
 
     println!("Refitting Vertex-----------------");
     let h5s = l5.iter().map( |i| vm.helices[*i].clone() ).collect();
@@ -88,8 +86,7 @@ fn test_fvt() {
     println!("Refitted vertex -> {}", fv);
     for i in 0..fnp { println!("q chi2 ->{:6.1} {}", fcs[i], fqs[i]); }
 
-    let mm = inv_mass(
-            fqs
+    let mm = inv_mass( &fqs
             .iter()
             .map( |q| PMeas::from(q) )
             .collect()

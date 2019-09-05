@@ -3,7 +3,7 @@
 use crate::cov::*;
 use crate::types::*;
 
-use std::fmt;
+// use std::fmt;
 
 use std::convert::From;
 
@@ -12,18 +12,25 @@ pub fn fit<'a>(vhm: &'a VHMeas) -> Prong<'a> {
 }
 
 impl VHMeas {
-    fn k_filter(&self) -> XMeas { self.vertex.clone() }
-// k_filter VHMeas {vertex=v, helices=hl} = foldl k_add v hl
+    // fn k_filter(&self) -> XMeas { self.vertex.clone() }
+    fn k_filter(&self) -> XMeas {
+        self.helices
+            .iter()
+            .fold(self.vertex.clone(), |v, h| VHMeas::k_add(v, &h) )
+    }
+    fn k_add( XMeas(v, vv): XMeas, HMeas(h, hh, w0): &HMeas ) -> XMeas {
+        let q_e   = &HMeas::hv2q(h, &v);
+        let x_e   = &v.clone();
+        let x_km1 = XMeas(v, vv.cholinv());
+        let p_k   = &HMeas(h.clone(), hh.cholinv(), *w0);
+        VHMeas::k_addp(x_km1, p_k, x_e, q_e, Chi2(1e6_f64), 0)
+    }
+// -- | add a helix measurement to kalman filter, return updated vertex position
+// -- | if we can't invert, don't update vertex
+    fn k_addp(v0: XMeas, h: &HMeas, x_e: &Vec3, q_e: &Vec3, _: Chi2, i: usize) -> XMeas {
+        v0
+    }
 
-    // fn k_add() -> XMeas {
-
-    // }
-// kAdd :: XMeas -> HMeas -> XMeas
-// kAdd (XMeas v vv) (HMeas h hh w0) = kAdd' x_km1 p_k x_e q_e (Chi2 1e6) 0 where
-//   x_km1 = XMeas v (inv vv)
-//   p_k   = HMeas h (inv hh) w0
-//   x_e   = v
-//   q_e   = J.hv2q h v
 
     fn k_smooth(&self, v: XMeas) -> Prong {
         let n = self.helices.len();
@@ -32,7 +39,7 @@ impl VHMeas {
         Prong {n_prong: n,
         fit_vertex: v,
         fit_momenta: ql,
-        fit_chi2s: vec![1.0; n],
+        fit_chi2s: vec![Chi2(1.0); n],
         measurements: &self,
         }
     }

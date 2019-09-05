@@ -16,7 +16,7 @@ pub struct Prong<'a> {
                     pub measurements: &'a VHMeas,
                 }
 
-type Chi2 = Number;
+// type Chi2 = Number;
 
 #[derive(Debug, Clone)]
 pub struct XMeas(pub Vec3, pub Cov3);
@@ -48,6 +48,36 @@ impl fmt::Display for XMeas {
 #[derive(Debug, Clone)]
 pub struct HMeas(pub Vec5, pub Cov5, pub Number);
 impl HMeas {
+// -- | calculate q 3-vector for a given helix parameterization near vertex position
+    pub fn hv2q(h: &Vec5, v_: &Vec3) -> Vec3 {
+        let q: Vec3 = [h.v[0],h.v[1],h.v[2]].into();
+        q
+    }
+// hv2q Data.Cov.Vec.Vec {Data.Cov.Vec.v=h_} Data.Cov.Vec.Vec {Data.Cov.Vec.v=v_} = q where
+
+
+// hv2q :: Vec5 -> Vec3 -> Vec3
+// hv2q Data.Cov.Vec.Vec {Data.Cov.Vec.v=h_} Data.Cov.Vec.Vec {Data.Cov.Vec.v=v_} = q where
+//   xx   = uidx v_ 0
+//   yy   = uidx v_ 1
+//   r    = sqrt $ xx*xx + yy*yy
+//   phi  = atan2 yy xx
+//   w0   = uidx h_ 0
+//   tl0  = uidx h_ 1
+//   psi0 = uidx h_ 2
+//   -- d0   = uidx h_ 3
+//   -- z0   = uidx h_ 4
+//   xi = mod' (psi0 - phi + 2.0*pi) (2.0*pi)
+//   cxi = cos xi
+//   sxi = sin xi
+//   q = fromArray $
+//             if w0 /= 0.0
+//                 then [ w0, tl0, psi0 + gamma ]
+//                 else [ w0, tl0, psi0 ]
+//                   where
+//                     oow0 = 1.0/w0
+//                     gamma = atan r*cxi/(oow0-r*sxi)
+
 
 }
 impl fmt::Display for HMeas {
@@ -111,6 +141,14 @@ impl fmt::Display for QMeas {
 }
 
 #[derive(Debug, Clone)]
+pub struct Chi2(pub Number);
+impl fmt::Display for Chi2 {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{:6.1}", self.0)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct MMeas{pub m: Number, pub dm: Number,}
 impl fmt::Display for MMeas {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -163,7 +201,7 @@ impl Add<&PMeas> for PMeas {
         PMeas(self.0+&other.0, self.1+&other.1)
     }
 }
-pub fn inv_mass(ps: Vec<PMeas>) -> MMeas {
+pub fn inv_mass(ps: &Vec<PMeas>) -> MMeas {
     let psum = ps[1..].iter()
                       .fold( ps[0].clone(), |acc, p| acc + p ); // PMeas should get a Default
     psum.mass()
