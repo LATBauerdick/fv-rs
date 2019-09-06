@@ -28,8 +28,35 @@ impl VHMeas {
 // -- | add a helix measurement to kalman filter, return updated vertex position
 // -- | if we can't invert, don't update vertex
     fn k_addp(v0: XMeas, h: &HMeas, x_e: &Vec3, q_e: &Vec3, _: Chi2, i: usize) -> XMeas {
+        let (aa, bb, h0) = expand(x_e, q_e);
+        let aa_t  = aa.tr();
+        let bb_t  = bb.tr();
         v0
     }
+// -- | add a helix measurement to kalman filter, return updated vertex position
+// -- | if we can't invert, don't update vertex
+// kAdd' :: XMeas -> HMeas -> Vec3 -> Vec3 -> Chi2 -> Int -> XMeas
+// --kAdd' (XMeas v0 uu0) (HMeas h gg w0) x_e q_e _ i |
+// --        i == 0 && trace ("kadd'-->" <> show i <> "|" <> show v0 <> show h) false = undefined
+// kAdd' (XMeas v0 uu0) (HMeas h gg w0) x_e q_e (Chi2 𝜒2_0) iter
+//   | goodEnough = XMeas v cc
+//   | otherwise  = kAdd' (XMeas v0 uu0) (HMeas h gg w0) v q (Chi2 𝜒2) (iter+1)
+//   where
+//     Jacs {aajacs=aa, bbjacs=bb, h0jacs=h0} = J.expand x_e q_e
+//     aaT  = tr aa
+//     bbT  = tr bb
+//     ww   = fromJust $ invMaybe (bb .*. gg)
+//     gb   = gg - gg .*. (bbT .*. ww)
+//     uu   = uu0 + aa .*. gb
+//     cc   = inv uu
+//     m    = h - h0
+//     v    = cc *. (uu0 *. v0 + aaT *. gb *. m)
+//     dm   = m - aa *. v
+//     q    = ww *. (bbT *. gg *. dm)
+//     𝜒2   = (dm - bb *. q) .*. gg + (v - v0) .*. uu0
+//     goodEnough = abs (𝜒2 - 𝜒2_0) < chi2cut || iter > iterMax where
+//       chi2cut = 0.5
+//       iterMax = 99 :: Int
 
 
     fn k_smooth(&self, v: XMeas) -> Prong {

@@ -20,7 +20,7 @@ pub type NA25 = [Number; 25];
 
 enum Dim { Dim3, Dim4, Dim5 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Default, Debug, PartialEq, Clone)]
 pub struct Vecn<T> { pub v: T }
 
 pub type Vec3 = Vecn<NA3>;
@@ -89,7 +89,7 @@ enum WebEvent {
     Click { x: i64, y: i64 },
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Default, Debug, PartialEq, Clone)]
 pub struct Cov<T> { pub v: T }
 pub type Cov3 = Cov<NA6>;
 pub type Cov4 = Cov<NA10>;
@@ -215,8 +215,13 @@ impl From<&Cov5> for Cov3 { // we make a Cov3 from a Cov5 by just dropping the l
         Cov3 { v: a }
     }
 }
-#[derive(Debug, PartialEq, Clone)]
-pub struct Jac33 { pub v: NA9 }
+#[derive(Default, Debug, PartialEq, Clone)]
+pub struct Jac<T> { pub v: T }
+pub type Jac33 = Jac<NA9>;
+pub type Jac34 = Jac<NA12>;
+pub type Jac35 = Jac<NA15>;
+pub type Jac53 = Jac<NA15>;
+pub type Jac55 = Jac<NA25>;
 
 impl Jac33 {
     pub fn tr(&self) -> Jac33 {
@@ -243,9 +248,6 @@ impl fmt::Display for Jac33 {
         write!(f, "Jac33:{}", pretty_matrix(3,3,&self.v))
     }
 }
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct Jac55 { pub v: NA25 }
 
 impl Jac55 {
     pub fn tr(&self) -> Jac55 {
@@ -280,9 +282,9 @@ impl From<Vec<Number>> for Jac55 {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub struct Jac34 { pub v: NA12 }
+impl Jac34 {
 
+}
 impl From<NA12> for Jac34 {
     fn from(v: NA12) -> Self {
         Jac34 { v }
@@ -292,6 +294,32 @@ impl From<NA12> for Jac34 {
 impl fmt::Display for Jac34 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Jac34:{}", pretty_matrix(3,4,&self.v))
+    }
+}
+
+impl Jac53 {
+    pub fn tr(&self) -> Jac35 {
+        let ixa = |i0: usize, j0: usize| i0*3+j0;
+        let ixb = |i0: usize, j0: usize| i0*5+j0;
+
+        let xx: &mut NA15 = &mut [0.0; 15];
+        for i0 in 0..5 {
+            for j0 in 0..3 {
+                xx[ixa(i0, j0)] = self.v[ixb(j0, i0)];
+            }
+        }
+        Jac35 { v: *xx }
+    }
+}
+impl From<NA15> for Jac53 {
+    fn from(v: NA15) -> Self {
+        Jac53 { v }
+    }
+}
+
+impl fmt::Display for Jac53 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Jac53:{}", pretty_matrix(5,3,&self.v))
     }
 }
 
@@ -519,8 +547,6 @@ impl From<Vec<Number>> for Cov5 {
     }
 }
 
-// #[derive(Debug)]
-// pub struct Cov5(pub [Number; 15]);
 impl Cov5 {
     // SymMat
     pub fn det(&self) -> Number {
