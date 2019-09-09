@@ -195,14 +195,6 @@ impl From<Vec<Number>> for Cov4 {
         Cov4 { v: a }
     }
 }
-use std::ops::Add;
-impl Add<&Cov4> for Cov4 {
-    type Output = Cov4;
-    fn add(mut self, other: &Cov4) -> Cov4 {
-        for i in 0..10 { self.v[i] += other.v[i]; }
-        self
-    }
-}
 impl Cov5 {
     pub fn diag(&self) -> NA5 {
         [self.v[0], self.v[5], self.v[9], self.v[12], self.v[14], ]
@@ -298,18 +290,18 @@ impl fmt::Display for Jac34 {
 }
 
 impl Jac53 {
-    pub fn tr(&self) -> Jac35 {
-        let ixa = |i0: usize, j0: usize| i0*3+j0;
-        let ixb = |i0: usize, j0: usize| i0*5+j0;
+    // pub fn tr(&self) -> Jac35 {
+    //     let ixa = |i0: usize, j0: usize| i0*3+j0;
+    //     let ixb = |i0: usize, j0: usize| i0*5+j0;
 
-        let xx: &mut NA15 = &mut [0.0; 15];
-        for i0 in 0..5 {
-            for j0 in 0..3 {
-                xx[ixa(i0, j0)] = self.v[ixb(j0, i0)];
-            }
-        }
-        Jac35 { v: *xx }
-    }
+    //     let xx: &mut NA15 = &mut [0.0; 15];
+    //     for i0 in 0..3 {
+    //         for j0 in 0..5 {
+    //             xx[ixb(i0, j0)] = self.v[ixa(j0, i0)];
+    //         }
+    //     }
+    //     Jac35 { v: *xx }
+    // }
 }
 impl From<NA15> for Jac53 {
     fn from(v: NA15) -> Self {
@@ -323,211 +315,6 @@ impl fmt::Display for Jac53 {
     }
 }
 
-// fn new_na9_from<F: Iterator<Item=Number>>(src: F) -> NA9 {
-//     let mut result: NA9 = [0.0; 9];
-//     for (rref, val) in result.iter_mut().zip(src) {
-//         *rref = val;
-//     }
-//     result
-// }
-// fn cmap<F: Fn(Number, Number) -> Number>(a: NA9, b: NA9, f: F) -> NA9 {
-//     new_na9_from(a.iter().zip(&b).map(|(x, y)| f(*x, *y)))
-// }
-
-impl Add for Cov3 {
-    type Output = Cov3;
-    fn add(mut self, other: Cov3) -> Cov3 {
-        for i in 0..6 { self.v[i] += other.v[i]; }
-        self
-    }
-}
-impl Add for Jac33 {
-    type Output = Jac33;
-    fn add(mut self, other: Jac33) -> Jac33 {
-        for i in 0..9 { self.v[i] += other.v[i]; }
-        // Jac33 {
-        //     // v: cmap(self.v, other.v, |x, y| x + y),
-        //     // v: self.v.iter().zip(&other.v).map(|(s, o)| s+o).collect()
-        // }
-        self
-    }
-}
-impl Add for Jac55 {
-    type Output = Jac55;
-    fn add(mut self, other: Jac55) -> Jac55 {
-        for i in 0..25 { self.v[i] += other.v[i]; }
-        self
-    }
-}
-impl Add<&Vec4> for Vec4 {
-    type Output = Vec4;
-    fn add(mut self, other: &Vec4) -> Vec4 {
-        for i in 0..4 { self.v[i] += other.v[i]; }
-        self
-    }
-}
-use std::ops::Mul;
-impl Mul for Vec3 {
-    type Output = Number;
-    fn mul(self, other: Vec3) -> Number {
-        let nb = 3;
-        let mut s = 0.0;
-        for k in 0..nb {
-            s += self.v[k] * other.v[k];
-        }
-        s
-    }
-}
-impl Mul for Jac33 {
-    type Output = Jac33;
-    fn mul(mut self, other: Jac33) -> Jac33 {
-        //self.v.len() is 9;
-        let nb = 3;
-        let na = self.v.len() / nb;
-// indV w i0 j0 = i0*w+j0 -- w=nj width of niXnj matrix, i0=0..ni-1, j0=0..nj-1
-        let ixa = |i0, j0| i0*nb+j0;
-        let ixb = |i0, j0| i0*na+j0;
-        let tmp = self.v.clone();                ;
-        for i in 0..na {
-        for j in 0..na {
-        let mut s = 0.0;
-        for k in 0..nb {
-            s += tmp[ixa(i,k)] * other.v[ixb(k,j)];
-        }
-        self.v[ixa(i,j)] = s;
-        }}
-        self
-    }
-}
-
-impl Mul<Cov3> for Jac34 {
-    type Output = Cov4;
-    fn mul(self, other: Cov3) -> Cov4 {
-        // let l = other.v.len();
-        let n = 3; // match l 6->3, 10->4, 15->5
-        let m = self.v.len() / n; // mxn * nxn * nxm -> mxm
-        let mut vint = self.v.clone(); // mxn * nxn -> mxn, v has same size as self.v
-        let w = n; //= indVs n
-        let ixa = |i0: usize, j0: usize| {
-            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
-        };
-        let ixb = |i0, j0| i0*m+j0; // = indV m
-        for i in 0..n {
-        for j in 0..m {
-        let mut s = 0.0;
-        for k in 0..n {
-            s += other.v[ixa(i,k)] * self.v[ixb(k,j)];
-        }
-        vint[ixb(i,j)] = s;
-        }}
-        let mut vp = [0.0_f64; 10];  // match l 6->3, 10->4, 15->5
-        let ixi = |i0, j0| i0*m+j0; // = indV m
-        let w = m; //= indVs m
-        let ixc = |i0: usize, j0: usize| {
-            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
-        };
-        for i in 0..m {
-        for j in i..m {
-        let mut s = 0.0;
-        for k in 0..n {
-            s += self.v[ixi(k,i)] * vint[ixi(k,j)];
-        }
-        vp[ixc(i,j)] = s;
-        }}
-        Cov4{v: vp}
-    }
-}
-impl Mul<Jac55> for Jac55 {
-    type Output = Jac55;
-    fn mul(mut self, other: Jac55) -> Jac55 {
-        //self.v.len() is 9;
-        let nb = 5;
-        let na = self.v.len() / nb;
-// indV w i0 j0 = i0*w+j0 -- w=nj width of niXnj matrix, i0=0..ni-1, j0=0..nj-1
-        let ixa = |i0, j0| i0*nb+j0;
-        let ixb = |i0, j0| i0*na+j0;
-        let tmp = self.v.clone();                ;
-        for i in 0..na {
-        for j in 0..na {
-        let mut s = 0.0;
-        for k in 0..nb {
-            s += tmp[ixa(i,k)] * other.v[ixb(k,j)];
-        }
-        self.v[ixa(i,j)] = s;
-        }}
-        self
-    }
-}
-impl Mul<Cov5> for Jac55 {
-    type Output = Cov5;
-    fn mul(self, other: Cov5) -> Cov5 {
-        let n = 5;
-        let w = n;
-        let ixa = |i0: usize, j0: usize| i0*w+j0;
-        let ixb = |i0: usize, j0: usize| {
-            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
-        };
-
-        let mut vr = [0.0; 25];
-        for i in 0..n {
-        for j in 0..n {
-        let mut s = 0.0;
-        for k in 0..n {
-            s += self.v[ixa(i,k)] * other.v[ixb(k,j)];
-        }
-        vr[ixa(i,j)] = s;
-        }}
-        vr[..].into()
-    }
-}
-
-impl Mul for Cov3 {
-    type Output = Jac33;
-    fn mul(self, other: Cov3) -> Jac33 {
-        //self.v.len() is 9;
-        let n = 3;
-        let w = n;
-        let ixa = |i0: usize, j0: usize| {
-            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
-        };
-        let ixr = |i0: usize, j0: usize| i0*w+j0;
-
-        let mut res = Jac33 { v: [0.0; 9] };
-        for i in 0..n {
-        for j in 0..n {
-        let mut s = 0.0;
-        for k in 0..n {
-            s += self.v[ixa(i,k)] * other.v[ixa(k,j)];
-        }
-        res.v[ixr(i,j)] = s;
-        }}
-        res
-    }
-}
-
-impl Mul for Cov5 {
-    type Output = Jac55;
-    fn mul(self, other: Cov5) -> Jac55 {
-        //self.v.len() is 9;
-        let n = 5;
-        let w = n;
-        let ixa = |i0: usize, j0: usize| {
-            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
-        };
-        let ixr = |i0: usize, j0: usize| i0*w+j0;
-
-        let mut res = Jac55 { v: [0.0; 25] };
-        for i in 0..n {
-        for j in 0..n {
-        let mut s = 0.0;
-        for k in 0..n {
-            s += self.v[ixa(i,k)] * other.v[ixa(k,j)];
-        }
-        res.v[ixr(i,j)] = s;
-        }}
-        res
-    }
-}
 impl From<&[Number]> for Cov5 {
     fn from(v: &[Number]) -> Self {
         let a: NA15 =
@@ -616,49 +403,291 @@ pub fn pretty_matrix(r: usize, c: usize, v: &[Number]) -> String {
                     ).fold("".to_string(), |a, s| a + "\n" + &s)
 }
 
+use std::ops::Add;
+impl Add<&Vec3> for &Vec3 {
+    type Output = Vec3;
+    fn add(self, other: &Vec3) -> Vec3 {
+        let mut r: NA3 = [0f64; 3];
+        for i in 0..3 { r[i] = self.v[i] + other.v[i]; }
+        Vec3 { v: r }
+    }
+}
+impl Add<&Vec4> for &Vec4 {
+    type Output = Vec4;
+    fn add(self, other: &Vec4) -> Vec4 {
+        let mut r: NA4 = [0f64; 4];
+        for i in 0..4 { r[i] = self.v[i] + other.v[i]; }
+        Vec4 { v: r }
+    }
+}
+impl Add<&Cov3> for &Cov3 {
+    type Output = Cov3;
+    fn add(self, other: &Cov3) -> Cov3 {
+        let mut r: NA6 = [0f64; 6];
+        for i in 0..6 { r[i] = self.v[i] + other.v[i]; }
+        Cov3 { v: r }
+    }
+}
+impl Add<&Cov4> for &Cov4 {
+    type Output = Cov4;
+    fn add(self, other: &Cov4) -> Cov4 {
+        let mut r: NA10 = [0f64; 10];
+        for i in 0..10 { r[i] = self.v[i] + other.v[i]; }
+        Cov4 { v: r }
+    }
+}
+//-------------------------------------------------------------------------------
+use std::ops::Sub;
+impl Sub<&Vec5> for &Vec5 {
+    type Output = Vec5;
+    fn sub(self, other: &Vec5) -> Vec5 {
+        let mut r: NA5 = [0f64; 5];
+        for i in 0..5 { r[i] = self.v[i] - other.v[i]; }
+        Vec5 { v: r }
+    }
+}
+impl Sub<&Cov5> for &Cov5 {
+    type Output = Cov5;
+    fn sub(self, other: &Cov5) -> Cov5 {
+        let mut r: NA15 = [0f64; 15];
+        for i in 0..15 { r[i] = self.v[i] - other.v[i]; }
+        Cov5 { v: r }
+    }
+}
+
+//-------------------------------------------------------------------------------
+use std::ops::Mul;
+
+// sw, these are the two-sided Mul operator, J*C -> JT.C.J,  or V*C -> VT.C.V
+
+impl Mul<&Cov3> for &Jac34 {
+    type Output = Cov4;
+    fn mul(self, other: &Cov3) -> Cov4 {
+        // let l = other.v.len();
+        let n = 3; // match l 6->3, 10->4, 15->5
+        let m = self.v.len() / n; // mxn * nxn * nxm -> mxm
+        let mut vint = self.v.clone(); // mxn * nxn -> mxn, v has same size as self.v
+        let w = n; //= indVs n
+        let ixa = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
+        };
+        let ixb = |i0, j0| i0*m+j0; // = indV m
+        for i in 0..n {
+        for j in 0..m {
+        let mut s = 0.0;
+        for k in 0..n {
+            s += other.v[ixa(i,k)] * self.v[ixb(k,j)];
+        }
+        vint[ixb(i,j)] = s;
+        }}
+        let mut vp = [0.0_f64; 10];  // match l 6->3, 10->4, 15->5
+        let ixi = |i0, j0| i0*m+j0; // = indV m
+        let w = m; //= indVs m
+        let ixc = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
+        };
+        for i in 0..m {
+        for j in i..m {
+        let mut s = 0.0;
+        for k in 0..n {
+            s += self.v[ixi(k,i)] * vint[ixi(k,j)];
+        }
+        vp[ixc(i,j)] = s;
+        }}
+        Cov4{v: vp}
+    }
+}
+
+impl Mul<&Cov5> for &Jac55 {
+    type Output = Cov5;
+    fn mul(self, other: &Cov5) -> Cov5 {
+        // let l = other.v.len();
+        let n = 5; // match l  6->3, 10->4, 15->5
+        let m = self.v.len() / n; // mxn * nxn * nxm -> mxm
+        let mut vint = self.v.clone(); // mxn * nxn -> mxn, v has same size as self.v
+        let w = n; //= indVs n
+        let ixa = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
+        };
+        let ixb = |i0, j0| i0*m+j0; // = indV m
+        for i in 0..n {
+        for j in 0..m {
+        let mut s = 0.0;
+        for k in 0..n {
+            s += other.v[ixa(i,k)] * self.v[ixb(k,j)];
+        }
+        vint[ixb(i,j)] = s;
+        }}
+        let mut vp = [0f64; 15];  // match l 6->3, 10->4, 15->5
+        let ixi = |i0, j0| i0*m+j0; // = indV m
+        let w = m; //= indVs m
+        let ixc = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
+        };
+        for i in 0..m {
+        for j in i..m {
+        let mut s = 0.0;
+        for k in 0..n {
+            s += self.v[ixi(k,i)] * vint[ixi(k,j)];
+        }
+        vp[ixc(i,j)] = s;
+        }}
+        Cov5{v: vp}
+    }
+}
+
+impl Mul<&Cov5> for &Jac53 {
+    type Output = Cov3;
+    fn mul(self, other: &Cov5) -> Cov3 {
+        // J53(d5/d3) C5 -> C3 by J53T * C5 * J53 -> C3
+        let n = 3; // corrected
+        let m = 5; // JT*C*J -> nxm * mxm -> nxm * mxn -> nxn
+        let mut vint = self.v.clone(); // nxm * mxm -> nxm, vint has same size as self.v
+        // let w = m; //= indVs m
+        let ixb = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*m - (i0*(i0+1))/2 }  else { i0 + j0*m - (j0*(j0+1))/2 }
+        };
+        let ixa = |i0, j0| i0*n+j0; // = indV n T
+        let ixi = |i0, j0| i0*m+j0; // indV m
+        for i in 0..n {
+            for j in 0..m {
+                let mut s = 0.0;
+                for k in 0..m {
+                    s += self.v[ixa(k,i)] * other.v[ixb(k,j)];
+                }
+                vint[ixi(i,j)] = s;
+            }
+        }
+        let ixa = |i0, j0| i0*n+j0; // = indV n
+        let ixr = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*n - (i0*(i0+1))/2 }  else { i0 + j0*n - (j0*(j0+1))/2 }
+        };
+        let mut r = [0f64; 6];  // match l 6->3, 10->4, 15->5
+        for i in 0..n {
+            for j in i..n {
+                let mut s = 0.0;
+                for k in 0..m {
+                    s += vint[ixi(i,k)] * self.v[ixa(k,j)];
+                }
+                r[ixr(i,j)] = s;
+            }
+        }
+        Cov3{v: r}
+    }
+}
+impl Mul<&Cov3> for &Jac53 {    // Jac53.Cov3.Jac53T -> Cov5
+    type Output = Cov5;
+    fn mul(self, other: &Cov3) -> Cov5 {
+        // C3 -> C5 by J53 * C3 * J53T -> C5
+        let n = 5; // corrected
+        let m = 3; // J*C*JT -> nxm * mxm -> nxm * mxn -> nxn
+        let mut vint = self.v.clone(); // nxm * mxm -> nxm, vint has same size as self.v
+        // let w = m; //= indVs m
+        let ixb = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*m - (i0*(i0+1))/2 }  else { i0 + j0*m - (j0*(j0+1))/2 }
+        };
+        let ixa = |i0, j0| i0*m+j0; // = indV m
+        let ixi = |i0, j0| i0*m+j0; // indV m
+        for i in 0..n {
+            for j in 0..m {
+                let mut s = 0.0;
+                for k in 0..m {
+                    s += self.v[ixa(i,k)] * other.v[ixb(k,j)];
+                }
+                vint[ixi(i,j)] = s;
+            }
+        }
+        let ixa = |i0, j0| i0*m+j0; // = indV m T
+        let ixr = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*n - (i0*(i0+1))/2 }  else { i0 + j0*n - (j0*(j0+1))/2 }
+        };
+        let mut r = [0f64; 15];  // match l 6->3, 10->4, 15->5
+        for i in 0..n {
+            for j in i..n {
+                let mut s = 0.0;
+                for k in 0..m {
+                    s += vint[ixi(i,k)] * self.v[ixa(j,k)];
+                }
+                r[ixr(i,j)] = s;
+            }
+        }
+        Cov5{v: r}
+    }
+}
+// this is special: CT.C.C -> C
+impl Mul<&Cov5> for &Cov5 {
+    type Output = Cov5;
+    fn mul(self, other: &Cov5) -> Cov5 {
+        //self.v.len() is 9;
+        let n = 5;
+        let w = n;
+        let ixa = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
+        };
+        let ixi = |i0: usize, j0: usize| i0*w+j0;
+
+        // Cov5 * Cov5 -> Jac55
+        let mut inter = [0.0; 25];
+        for i in 0..n {
+        for j in 0..n {
+        let mut s = 0.0;
+        for k in 0..n {
+            s += self.v[ixa(k,i)] * other.v[ixa(k,j)];
+        }
+        inter[ixi(i,j)] = s;
+        }}
+
+        let mut res = [0.0; 15];
+        for i in 0..n {
+        for j in 0..n {
+        let mut s = 0.0;
+        for k in 0..n {
+            s += inter[ixi(i,k)] * self.v[ixa(k,j)];
+        }
+        res[ixa(i,j)] = s;
+        }}
+        Cov5 { v: res }
+    }
+}
 #[test]
 fn test_cov() {
-    // let Cov<Dim3> xc3 = Cov {v: Vec}
-    //
     let _ch3 : Cov3 = [2.0, -1.0, 0.0, 2.0, -1.0, 2.0].into();
     let ch3 = Cov3::from([2.0, -1.0, 0.0, 2.0, -1.0, 2.0]);
     let ch5 = Cov5{ v: [2.0, -1.0, 0.0, 0.0, 0.0, 2.0, -1.0, 0.0, 0.0, 2.0, 0.0, 0.0, 2.0, 0.0, 2.0] };
 
-
-    let res = format!(r"
-chol: -----------------
-A = L * L^T             {}
-L                       {}
-L * L^T                 {}
-A^(-1) = L' * L'^T      {}
-A * A^(-1)              {}
-A = L * L^T             {}
-L                       {}
-L * L^T                 {}
-A^(-1) = L' * L'^T      {}
-A * A^(-1)              {}
-det this                {}
-",
-    ch3,
-    ch3.choldc(),
-    ch3.choldc() * ch3.choldc().tr(),
-    ch3.cholinv(),
-    ch3.clone() * ch3.cholinv(),
-    ch5,
-    ch5.choldc(),
-    ch5.choldc() * ch5.choldc().tr(),
-    ch5.cholinv(),
-    ch5.clone() * ch5.cholinv(),
-    ch5.det(),
-    );
+    // let res = format!(r"
+// chol: -----------------
+// A = L * L^T             {}
+// L                       {}
+// L * L^T                 {}
+// A^(-1) = L' * L'^T      {}
+// A * A^(-1)              {}
+// A = L * L^T             {}
+// L                       {}
+// L * L^T                 {}
+// A^(-1) = L' * L'^T      {}
+// A * A^(-1)              {}
+// det this                {}
+// ",
+    // ch3,
+    // ch3.choldc(),
+    // ch3.choldc() * ch3.choldc().tr(),
+    // ch3.cholinv(),
+    // ch3.clone() * ch3.cholinv(),
+    // ch5,
+    // ch5.choldc(),
+    // ch5.choldc() * ch5.choldc().tr(),
+    // ch5.cholinv(),
+    // &ch5 * &ch5.cholinv(),
+    // ch5.det(),
+    // );
     // print!("{}", res);
 
     // let v3 = Vec3 { v: [10.0,11.0,12.0] };
-    // res.push_str(&format!("Vec *. Vec = {}\n", (v3.clone() * v3).to_string()));
-    // println!("Vec * Vec = {}\n", v3.clone() * v3);
+    // println!("Vec * Vec = {}\n", &v3 * &v3);
     // println!("Cov *. Cov = {}\n", (Cov3 {v: [1.0,2.0,3.0,4.0,5.0,6.0]}) * (Cov3 {v: [0.0,0.0,1.0,1.0,0.0,0.0]}));
 
-    assert!(true, "test failed with '{}'", res);
+    assert!(true, "test failed with");
 }
 
 

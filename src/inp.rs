@@ -87,7 +87,7 @@ fn nxt_hp(ds: Vec<Number>) -> Option<HMeas> {
                         ].into();
     let hp: Vec5        = [w, tl, h2, h3, h4].into();
     let chp: Cov5       = ds[5..30].into();
-    let chpp            = jj * chp;
+    let chpp            = &jj * &chp;
 
     Some(HMeas(hp, chpp, w0))
 

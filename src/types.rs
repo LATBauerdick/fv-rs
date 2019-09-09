@@ -61,34 +61,34 @@ impl fmt::Display for XMeas {
 pub struct HMeas(pub Vec5, pub Cov5, pub Number);
 impl HMeas {
 // -- | calculate q 3-vector for a given helix parameterization near vertex position
-    pub fn hv2q(h: &Vec5, v_: &Vec3) -> Vec3 {
-        let q: Vec3 = [h.v[0],h.v[1],h.v[2]].into();
-        q
+    pub fn hv2q(h: &Vec5, v: &Vec3) -> Vec3 {
+        let xx   = v.v[0];
+        let yy   = v.v[1];
+        let r    = f64::sqrt(xx*xx + yy*yy);
+        let phi  = f64::atan2(yy, xx);
+        let w0   = h.v[0];
+        let tl0  = h.v[1];
+        let psi0 = h.v[2];
+//   -- let d0   = h.v[2];
+//   -- let z0   = h.v[2];
+        let xi   = ((psi0 - phi) % TWOPI + TWOPI) % TWOPI;
+        let (sxi, cxi)   = f64::sin_cos(xi);
+        let qv = if w0 != 0.0 {
+                                let oow0 = 1.0/w0;
+                                let gamma = f64::atan(r*cxi/(oow0-r*sxi));
+                                [ w0, tl0, psi0 + gamma ]
+                            } else {
+                                [ w0, tl0, psi0 ]
+                            };
+
+        // let qv = [h.v[0],h.v[1],h.v[2]];
+        Vec3 { v: qv }
     }
 // hv2q Data.Cov.Vec.Vec {Data.Cov.Vec.v=h_} Data.Cov.Vec.Vec {Data.Cov.Vec.v=v_} = q where
 
 
 // hv2q :: Vec5 -> Vec3 -> Vec3
 // hv2q Data.Cov.Vec.Vec {Data.Cov.Vec.v=h_} Data.Cov.Vec.Vec {Data.Cov.Vec.v=v_} = q where
-//   xx   = uidx v_ 0
-//   yy   = uidx v_ 1
-//   r    = sqrt $ xx*xx + yy*yy
-//   phi  = atan2 yy xx
-//   w0   = uidx h_ 0
-//   tl0  = uidx h_ 1
-//   psi0 = uidx h_ 2
-//   -- d0   = uidx h_ 3
-//   -- z0   = uidx h_ 4
-//   xi = mod' (psi0 - phi + 2.0*pi) (2.0*pi)
-//   cxi = cos xi
-//   sxi = sin xi
-//   q = fromArray $
-//             if w0 /= 0.0
-//                 then [ w0, tl0, psi0 + gamma ]
-//                 else [ w0, tl0, psi0 ]
-//                   where
-//                     oow0 = 1.0/w0
-//                     gamma = atan r*cxi/(oow0-r*sxi)
 
 
 }
@@ -143,7 +143,7 @@ impl fmt::Display for QMeas {
         let jj   = Jac34 { v : [ -wp/w/w, -wp/w/w*tl, 0.0, -(pz*pz + pt*pt)/w/e
                                 , 0.0, wp/w, 0.0, pt*pt*tl/e
                                 , 0.0, 0.0, 1.0, 0.0] };
-        let cqp        = jj * cq.clone();
+        let cqp        = &jj * &cq;
         let pp         = [pt, pz, psi, e];
         let dp: Vec<Number> = cqp.diag().to_vec().into_iter().map(|x| x.sqrt()).collect();
         let dpp        = [dp[0], dp[1], dp[2]*180.0/PI, dp[3]];
@@ -202,7 +202,7 @@ use std::ops::Add;
 impl Add<&PMeas> for PMeas {
     type Output = PMeas;
     fn add(self, other: &PMeas) -> PMeas {
-        PMeas(self.0+&other.0, self.1+&other.1)
+        PMeas(&self.0+&other.0, &self.1+&other.1)
     }
 }
 pub fn inv_mass(ps: &Vec<PMeas>) -> MMeas {
@@ -262,109 +262,114 @@ impl From<&QMeas> for PMeas {
     }
 }
 
+const TWOPI: f64 = 2.0*PI;
 pub fn expand(v: &Vec3, q: &Vec3) -> ( Jac53, Jac53, Vec5 ) {
-    let aa= Jac53::default();
-    let bb= Jac53::default();
-    let h0 = Vec5::default();
-    (aa, bb, h0)
-}
-  // v_  = val v
-  // xx  = uidx v_ 0
-  // yy  = uidx v_ 1
-  // z   = uidx v_ 2
-  // r   = sqrt $ xx*xx + yy*yy
-  // phi = atan2 yy xx
-  // q_  = val q
-  // w   = uidx q_ 0
-  // tl  = uidx q_ 1
-  // psi = uidx q_ 2
+    let xx  = v.v[0];
+    let yy  = v.v[1];
+    let z   = v.v[2];
+    let r   = f64::sqrt(xx*xx + yy*yy);
+    let phi = f64::atan2(yy, xx);
+    let w   = q.v[0];
+    let tl  = q.v[1];
+    let psi = q.v[2];
   // -- some more derived quantities
-  // xi  = mod' (psi - phi + 2.0*pi) (2.0*pi)
-  // cxi = cos xi
-  // sxi = sin xi
-  // oow = 1.0 / w
-  // rw  = r * w
+    let xi  = ((psi - phi) % TWOPI + TWOPI) % TWOPI;
+    let (sxi, cxi)   = f64::sin_cos(xi);
+    let oow = 1.0 / w;
+    let rw  = r * w;
 
-  // gamma = atan $ r*cxi/(oow - r*sxi)
-  // sg    = sin gamma
-  // cg    = cos gamma
+    let gamma = f64::atan(r*cxi/(oow - r*sxi));
+    let oow = 1.0 / w;
+    let (sg, cg)   = f64::sin_cos(gamma);
 
   // -- calculate transformed quantities
-  // psi0  = psi - gamma
-  // d0    = oow - (oow - r*sxi)/cg
-  // z0    = z - tl*gamma/w
+    let psi0  = psi - gamma;
+    let d0    = oow - (oow - r*sxi)/cg;
+    let z0    = z - tl*gamma/w;
 
   // -- calc Jacobian
-  // drdx    =    if r /= 0.0 then xx/r else 0.0
-  // drdy    =    if r /= 0.0 then yy/r else 0.0
-  // rdxidx  =    if r /= 0.0 then yy/r else 0.0
-  // rdxidy  =    if r /= 0.0 then -xx/r else 0.0
-  // dgdvar0 =    1.0/(1.0 + rw*rw - 2.0*rw*sxi)
-  // dgdx    =    dgdvar0*(w*cxi*drdx + w*(rw - sxi)*rdxidx)
-  // dgdy    =    dgdvar0*(w*cxi*drdy + w*(rw - sxi)*rdxidy)
-  // dgdw    =    dgdvar0*r*cxi
-  // dgdpsi  =    dgdvar0*rw*(rw - sxi)
+    let drdx    =    if r != 0.0 {  xx/r } else { 0.0 };
+    let drdy    =    if r != 0.0 {  yy/r } else { 0.0 };
+    let rdxidx  =    if r != 0.0 {  yy/r } else { 0.0 };
+    let rdxidy  =    if r != 0.0 { -xx/r } else { 0.0 };
+    let dgdvar0 =    1.0/(1.0 + rw*rw - 2.0*rw*sxi);
+    let dgdx    =    dgdvar0*(w*cxi*drdx + w*(rw - sxi)*rdxidx);
+    let dgdy    =    dgdvar0*(w*cxi*drdy + w*(rw - sxi)*rdxidy);
+    let dgdw    =    dgdvar0*r*cxi;
+    let dgdpsi  =    dgdvar0*rw*(rw - sxi);
 
   // --  fill matrix:
   // -- d w / d r, d phi, d z
-  // a11                = 0.0
-  // a12                = 0.0
-  // a13                = 0.0
+    let a11                = 0.0;
+    let a12                = 0.0;
+    let a13                = 0.0;
   // -- d tl / d x, d y, d z
-  // a21                = 0.0
-  // a22                = 0.0
-  // a23                = 0.0
+    let a21                = 0.0;
+    let a22                = 0.0;
+    let a23                = 0.0;
   // -- d psi0 / d x, d y, d z
-  // a31                = -dgdx
-  // a32                = -dgdy
-  // a33                = 0.0
+    let a31                = -dgdx;
+    let a32                = -dgdy;
+    let a33                = 0.0;
   // -- d d0 / d x, d y, d z
-  // a41                = cxi*rdxidx/cg + sxi*drdx/cg
-  //                       - (oow - r*sxi)*sg*dgdx/cg/cg
-  // a42                = cxi*rdxidy/cg + sxi*drdy/cg
-  //                       - (oow - r*sxi)*sg*dgdy/cg/cg
-  // a43                = 0.0
+    let a41                = cxi*rdxidx/cg + sxi*drdx/cg
+                                - (oow - r*sxi)*sg*dgdx/cg/cg;
+    let a42                = cxi*rdxidy/cg + sxi*drdy/cg
+                                - (oow - r*sxi)*sg*dgdy/cg/cg;
+    let a43                = 0.0;
   // -- d z0 / d x, d y, d z
-  // a51                = -tl/w*dgdx
-  // a52                = -tl/w*dgdy
-  // a53                = 1.0
+    let a51                = -tl/w*dgdx;
+    let a52                = -tl/w*dgdy;
+    let a53                = 1.0;
 
   // -- B
   // -- d w / d w, d tl, d psi
-  // b11                = 1.0
-  // b12                = 0.0
-  // b13                = 0.0
+    let b11                = 1.0;
+    let b12                = 0.0;
+    let b13                = 0.0;
   // -- d tl / d w, d tl, d psi
-  // b21                = 0.0
-  // b22                = 1.0
-  // b23                = 0.0
+    let b21                = 0.0;
+    let b22                = 1.0;
+    let b23                = 0.0;
   // -- d psi0 / d w, d tl, d psi
-  // b31                = -dgdw
-  // b32                = 0.0
-  // b33                = 1.0 - dgdpsi
+    let b31                = -dgdw;
+    let b32                = 0.0;
+    let b33                = 1.0 - dgdpsi;
   // -- d d0 / d w, d tl, d psi
-  // b41                =  -oow*oow*(1.0 - 1.0/cg)
-  //                       - (oow - r*sxi)*sg*dgdw/cg/cg
-  // b42                = 0.0
-  // b43                = r*cxi/cg - (oow - r*sxi)*sg*dgdpsi/cg/cg
+    let b41                =  -oow*oow*(1.0 - 1.0/cg)
+                       - (oow - r*sxi)*sg*dgdw/cg/cg;
+    let b42                = 0.0;
+    let b43                = r*cxi/cg - (oow - r*sxi)*sg*dgdpsi/cg/cg;
   // -- d z0 / d w, d tl, d psi
-  // b51                = -tl/w*(dgdw - gamma/w)
-  // b52                = -gamma/w
-  // b53                = -tl/w*dgdpsi
+    let b51                = -tl/w*(dgdw - gamma/w);
+    let b52                = -gamma/w;
+    let b53                = -tl/w*dgdpsi;
 
-  // v01                = xx
-  // v02                = yy
-  // v03                = z
-  // q01                = w
-  // q02                = tl
-  // q03                = psi
-  // h0                 = fromArray [
-  //     0.0,
-  //     0.0,
-  //     psi0 - a31*v01 - a32*v02 - b31*q01 - b33*q03,
-  //     d0 - a41*v01 - a42*v02 - b41*q01 - b43*q03,
-  //     z0 - a51*v01 - a52*v02 - a53*v03 - b51*q01 - b52*q02 - b53*q03]
-  // aa = Data.Cov.Jac.Jac { Data.Cov.Jac.v= [a11,a12,a13,a21,a22,a23,a31,a32,a33,a41,a42,a43,a51,a52,a53], Data.Cov.Jac.nr= 5}
-  // bb = Data.Cov.Jac.Jac { Data.Cov.Jac.v= [b11,b12,b13,b21,b22,b23,b31,b32,b33,b41,b42,b43,b51,b52,b53], Data.Cov.Jac.nr= 5}
+    let  v01                = xx;
+    let  v02                = yy;
+    let  v03                = z;
+    let  q01                = w;
+    let  q02                = tl;
+    let  q03                = psi;
+    let  h0                 = Vec5 { v: [
+                        0.0,
+                        0.0,
+                        psi0 - a31*v01 - a32*v02 - b31*q01 - b33*q03,
+                        d0 - a41*v01 - a42*v02 - b41*q01 - b43*q03,
+                        z0 - a51*v01 - a52*v02 - a53*v03 - b51*q01 - b52*q02 - b53*q03
+                    ] };
+    let  aa = Jac53 { v: [a11,a12,a13,a21,a22,a23,a31,a32,a33,a41,a42,a43,a51,a52,a53] };
+    let  bb = Jac53 { v: [b11,b12,b13,b21,b22,b23,b31,b32,b33,b41,b42,b43,b51,b52,b53] };
+
+    // let aa= Jac53::default();
+    // let bb= Jac53::default();
+    // let h0 = Vec5::default();
+    (aa, bb, h0)
+}
+
+
+
+
+
 
 
