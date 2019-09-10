@@ -125,7 +125,8 @@ impl Cov3 {
         Cov3 { v: *xx }
     }
     pub fn scale_diag(&self, s: f64) -> Cov3 {
-        Cov {v: [self.v[0]*s, self.v[1], self.v[2], self.v[3]*s, self.v[4], self.v[5]*s, ]}
+        // Cov {v: [self.v[0]*s, self.v[1], self.v[2], self.v[3]*s, self.v[4], self.v[5]*s, ]}
+        Cov {v: [self.v[0]*s, 0f64, 0f64, self.v[3]*s, 0f64, self.v[5]*s, ]}
     }
 }
 
@@ -438,6 +439,14 @@ impl Add<&Cov4> for &Cov4 {
 }
 //-------------------------------------------------------------------------------
 use std::ops::Sub;
+impl Sub<&Vec3> for &Vec3 {
+    type Output = Vec3;
+    fn sub(self, other: &Vec3) -> Vec3 {
+        let mut r: NA3 = [0f64; 3];
+        for i in 0..3 { r[i] = self.v[i] - other.v[i]; }
+        Vec3 { v: r }
+    }
+}
 impl Sub<&Vec5> for &Vec5 {
     type Output = Vec5;
     fn sub(self, other: &Vec5) -> Vec5 {
@@ -458,7 +467,104 @@ impl Sub<&Cov5> for &Cov5 {
 //-------------------------------------------------------------------------------
 use std::ops::Mul;
 
-// sw, these are the two-sided Mul operator, J*C -> JT.C.J,  or V*C -> VT.C.V
+impl Mul<&Vec3> for &Cov3 {     // Cov3 * Vec3 -> Vec3
+    type Output = Vec3;
+    fn mul(self, other: &Vec3) -> Vec3 {
+        //self.v.len() is 9;
+        let n = 3;
+        let w = n;
+        let ixa = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
+        };
+
+        let mut r: NA3 = [0f64; 3];
+        for i in 0..n {
+        r[i] = 0.0;
+        for k in 0..n {
+            r[i] += self.v[ixa(i,k)] * other.v[k];
+        }
+        }
+        Vec3 { v: r }
+    }
+}
+impl Mul<&Vec3> for &Jac53 {     // Jac53 * Vec3 -> Vec5
+    type Output = Vec5;
+    fn mul(self, other: &Vec3) -> Vec5 {
+        let m = 5; // corrected, mxn * nx1 -> mx1; column index counts fastest
+        let n = 3;
+        let ixa = |i0, j0| i0*n+j0; // = indV n
+
+        let mut r: NA5 = [0f64;  5];
+        for i in 0..m {
+            r[i] = 0f64;
+            for k in 0..n {
+                r[i] += self.v[ixa(i,k)] * other.v[k];
+            }
+        }
+        Vec5 { v: r }
+    }
+}
+
+impl Mul<&Vec5> for &Jac53 {     // Jac53T * Vec5 -> Vec3
+    type Output = Vec3;
+    fn mul(self, other: &Vec5) -> Vec3 {
+        let m = 5; // corrected
+        let n = 3;
+        let ixa = |i0, j0| i0*n+j0; // = indV n
+
+        let mut r: NA3 = [0f64; 3];
+        for i in 0..n {
+            r[i] = 0f64;
+            for k in 0..m {
+                r[i] += self.v[ixa(k,i)] * other.v[k];
+            }
+        }
+        Vec3 { v: r }
+    }
+}
+impl Mul<&Vec5> for &Cov5 {     // Cov5 * Vec5 -> Vec5
+    type Output = Vec5;
+    fn mul(self, other: &Vec5) -> Vec5 {
+        let n = 5;
+        let w = n;
+        let ixa = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
+        };
+
+        let mut r: NA5 = [0f64; 5];
+        for i in 0..n {
+        r[i] = 0.0;
+        for k in 0..n {
+            r[i] += self.v[ixa(i,k)] * other.v[k];
+        }
+        }
+        Vec5 { v: r }
+    }
+}
+
+impl Mul<&Vec3> for &Vec3 {     // Vec3 * Vec3 -> Number
+    type Output = Number;
+    fn mul(self, other: &Vec3) -> Number {
+        let nb = 3;
+        let mut s = 0.0;
+        for k in 0..nb {
+            s += self.v[k] * other.v[k];
+        }
+        s
+    }
+}
+impl Mul<&Vec5> for &Vec5 {     // Vec5 * Vec5 -> Number
+    type Output = Number;
+    fn mul(self, other: &Vec5) -> Number {
+        let nb = 5;
+        let mut s = 0.0;
+        for k in 0..nb {
+            s += self.v[k] * other.v[k];
+        }
+        s
+    }
+}
+// sandwich operators, these are the two-sided Mul operator, J*C -> JT.C.J,  or V*C -> VT.C.V
 
 impl Mul<&Cov3> for &Jac34 {
     type Output = Cov4;
@@ -652,8 +758,8 @@ impl Mul<&Cov5> for &Cov5 {
 #[test]
 fn test_cov() {
     let _ch3 : Cov3 = [2.0, -1.0, 0.0, 2.0, -1.0, 2.0].into();
-    let ch3 = Cov3::from([2.0, -1.0, 0.0, 2.0, -1.0, 2.0]);
-    let ch5 = Cov5{ v: [2.0, -1.0, 0.0, 0.0, 0.0, 2.0, -1.0, 0.0, 0.0, 2.0, 0.0, 0.0, 2.0, 0.0, 2.0] };
+    // let ch3 = Cov3::from([2.0, -1.0, 0.0, 2.0, -1.0, 2.0]);
+    // let ch5 = Cov5{ v: [2.0, -1.0, 0.0, 0.0, 0.0, 2.0, -1.0, 0.0, 0.0, 2.0, 0.0, 0.0, 2.0, 0.0, 2.0] };
 
     // let res = format!(r"
 // chol: -----------------
