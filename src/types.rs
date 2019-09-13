@@ -143,7 +143,7 @@ impl fmt::Display for QMeas {
         let jj   = Jac34 { v : [ -wp/w/w, -wp/w/w*tl, 0.0, -(pz*pz + pt*pt)/w/e
                                 , 0.0, wp/w, 0.0, pt*pt*tl/e
                                 , 0.0, 0.0, 1.0, 0.0] };
-        let cqp        = &jj * &cq;
+        let cqp        = &jj % &cq;
         let pp         = [pt, pz, psi, e];
         let dp: Vec<Number> = cqp.diag().to_vec().into_iter().map(|x| x.sqrt()).collect();
         let dpp        = [dp[0], dp[1], dp[2]*180.0/PI, dp[3]];

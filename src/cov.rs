@@ -151,6 +151,11 @@ impl From<NA6> for Cov3 {
         Cov3 { v }
     }
 }
+impl From<NA9> for Cov3 {
+    fn from(v: NA9) -> Self {
+        Cov3 { v: [ v[0], v[1], v[2], v[4], v[5], v[8], ] }
+    }
+}
 impl From<Vec<Number>> for Cov3 {
     fn from(v: Vec<Number>) -> Self {
         let a: NA6 =
@@ -421,6 +426,14 @@ impl Add<&Vec4> for &Vec4 {
         Vec4 { v: r }
     }
 }
+impl Add<&Vec5> for &Vec5 {
+    type Output = Vec5;
+    fn add(self, other: &Vec5) -> Vec5 {
+        let mut r: NA5 = [0f64; 5];
+        for i in 0..5 { r[i] = self.v[i] + other.v[i]; }
+        Vec5 { v: r }
+    }
+}
 impl Add<&Cov3> for &Cov3 {
     type Output = Cov3;
     fn add(self, other: &Cov3) -> Cov3 {
@@ -453,6 +466,14 @@ impl Sub<&Vec5> for &Vec5 {
         let mut r: NA5 = [0f64; 5];
         for i in 0..5 { r[i] = self.v[i] - other.v[i]; }
         Vec5 { v: r }
+    }
+}
+impl Sub<&Cov3> for &Cov3 {
+    type Output = Cov3;
+    fn sub(self, other: &Cov3) -> Cov3 {
+        let mut r: NA6 = [0f64; 6];
+        for i in 0..6 { r[i] = self.v[i] - other.v[i]; }
+        Cov3 { v: r }
     }
 }
 impl Sub<&Cov5> for &Cov5 {
@@ -564,11 +585,109 @@ impl Mul<&Vec5> for &Vec5 {     // Vec5 * Vec5 -> Number
         s
     }
 }
+// 
+impl Mul<&Jac35> for &Cov3 {    // Cov3 * Jac53T -> Jac53T
+    type Output = Jac35;
+    fn mul(self, other: &Jac35) -> Jac35 {
+        let m = 3; // C*J -> mxm * mxn -> mxn
+        let n = 5;
+        let mut r = [0f64; 15];
+        let ixa = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*m - (i0*(i0+1))/2 }  else { i0 + j0*m - (j0*(j0+1))/2 }
+        };
+        let ixb = |j0, i0| i0*m+j0; // = indV n
+        for i in 0..m {
+            for j in 0..n {
+                let mut s = 0.0;
+                for k in 0..m {
+                    s += self.v[ixa(i,k)] * other.v[ixb(k,j)];
+                }
+                r[ixb(i,j)] = s;
+            }
+        }
+        Jac35{v: r}
+    }
+}
+impl Mul<&Cov3> for &Jac53 {    // Jac53 * Cov3 -> Jac53
+    type Output = Jac53;
+    fn mul(self, other: &Cov3) -> Jac53 {
+        let m = 5; // J*C -> mxn * nxn -> mxn
+        let n = 3;
+        let mut r = [0f64; 15];
+        let ixa = |i0, j0| i0*n+j0; // = indV n
+        // let w = n; //= indVs n
+        let ixb = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*n - (i0*(i0+1))/2 }  else { i0 + j0*n - (j0*(j0+1))/2 }
+        };
+        for i in 0..m {
+            for j in 0..n {
+                let mut s = 0.0;
+                for k in 0..n {
+                    s += self.v[ixa(i,k)] * other.v[ixb(k,j)];
+                }
+                r[ixa(i,j)] = s;
+            }
+        }
+        Jac53{v: r}
+    }
+}
+impl Mul<&Cov5> for &Jac35 {    // Jac35 * Cov5-> Jac35
+    type Output = Jac35;
+    fn mul(self, other: &Cov5) -> Jac35 {
+        let m = 3; // J*C -> mxn * nxn -> mxn
+        let n = 5;
+        let mut r = [0f64; 15];
+        let ixa = |j0, i0| i0*m+j0; // = indV n
+        // let w = n; //= indVs n
+        let ixb = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*n - (i0*(i0+1))/2 }  else { i0 + j0*n - (j0*(j0+1))/2 }
+        };
+        for i in 0..m {
+            for j in 0..n {
+                let mut s = 0.0;
+                for k in 0..n {
+                    s += self.v[ixa(i,k)] * other.v[ixb(k,j)];
+                }
+                r[ixa(i,j)] = s;
+            }
+        }
+        Jac35{v: r}
+    }
+}
+impl Mul<&Jac53> for &Jac35 {    // Jac35 * Jac53-> Jac33
+    type Output = Jac33;
+    fn mul(self, other: &Jac53) -> Jac33 {
+        let m = 3_usize; // J*J -> mxn * nxm -> mxm
+        let n = 5;
+        let mut r = [0f64; 9];
+        let ixa = |j0, i0| i0*m+j0; // = indV n
+        let ixb = |i0, j0| i0*m+j0; // = indV m
+        let ixr = |i0, j0| i0*m+j0; // = indV m
+        for i in 0..m {
+            for j in 0..m {
+                let mut s = 0.0;
+                for k in 0..n {
+                    s += self.v[ixa(i,k)] * other.v[ixb(k,j)];
+                }
+                r[ixr(i,j)] = s;
+            }
+        }
+        // assert_eq!(r[1], r[3]);
+        // assert_eq!(r[2], r[6]);
+        // assert_eq!(r[5], r[7]);
+        // r.into()
+        Jac33 { v: r }
+    }
+}
+
+
+
 // sandwich operators, these are the two-sided Mul operator, J*C -> JT.C.J,  or V*C -> VT.C.V
 
-impl Mul<&Cov3> for &Jac34 {
+use std::ops::Rem;
+impl Rem<&Cov3> for &Jac34 {
     type Output = Cov4;
-    fn mul(self, other: &Cov3) -> Cov4 {
+    fn rem(self, other: &Cov3) -> Cov4 {
         // let l = other.v.len();
         let n = 3; // match l 6->3, 10->4, 15->5
         let m = self.v.len() / n; // mxn * nxn * nxm -> mxm
@@ -604,9 +723,9 @@ impl Mul<&Cov3> for &Jac34 {
     }
 }
 
-impl Mul<&Cov5> for &Jac55 {
+impl Rem<&Cov5> for &Jac55 {
     type Output = Cov5;
-    fn mul(self, other: &Cov5) -> Cov5 {
+    fn rem(self, other: &Cov5) -> Cov5 {
         // let l = other.v.len();
         let n = 5; // match l  6->3, 10->4, 15->5
         let m = self.v.len() / n; // mxn * nxn * nxm -> mxm
@@ -642,9 +761,9 @@ impl Mul<&Cov5> for &Jac55 {
     }
 }
 
-impl Mul<&Cov5> for &Jac53 {
+impl Rem<&Cov5> for &Jac53 {
     type Output = Cov3;
-    fn mul(self, other: &Cov5) -> Cov3 {
+    fn rem(self, other: &Cov5) -> Cov3 {
         // J53(d5/d3) C5 -> C3 by J53T * C5 * J53 -> C3
         let n = 3; // corrected
         let m = 5; // JT*C*J -> nxm * mxm -> nxm * mxn -> nxn
@@ -681,9 +800,9 @@ impl Mul<&Cov5> for &Jac53 {
         Cov3{v: r}
     }
 }
-impl Mul<&Cov3> for &Jac53 {    // Jac53.Cov3.Jac53T -> Cov5
+impl Rem<&Cov3> for &Jac53 {    // Jac53.Cov3.Jac53T -> Cov5
     type Output = Cov5;
-    fn mul(self, other: &Cov3) -> Cov5 {
+    fn rem(self, other: &Cov3) -> Cov5 {
         // C3 -> C5 by J53 * C3 * J53T -> C5
         let n = 5; // corrected
         let m = 3; // J*C*JT -> nxm * mxm -> nxm * mxn -> nxn
@@ -720,11 +839,76 @@ impl Mul<&Cov3> for &Jac53 {    // Jac53.Cov3.Jac53T -> Cov5
         Cov5{v: r}
     }
 }
+impl Rem<&Cov3> for &Jac33 {    // Jac33T.Cov3.Jac33 -> Cov3
+    type Output = Cov3;
+    fn rem(self, other: &Cov3) -> Cov3 {
+        // C3 -> C3 by J33T * C3 * J33 -> C3
+        let n = 3; // J*C*JT -> nxn * nxn -> nxn * nxn -> nxn
+        let ixa = |i0, j0| i0*n+j0; // = indV n
+        let ixb = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*n - (i0*(i0+1))/2 }  else { i0 + j0*n - (j0*(j0+1))/2 }
+        };
+        let mut vint = [0f64; 9];
+        for i in 0..n {
+            for j in 0..n {
+                let mut s = 0.0;
+                for k in 0..n {
+                    s += other.v[ixb(i,k)] * self.v[ixa(k,j)];
+                }
+                vint[ixa(i,j)] = s;
+            }
+        }
+        let mut r = [0f64; 6];
+        for i in 0..n {
+            for j in i..n {
+                let mut s = 0.0;
+                for k in 0..n {
+                    s += self.v[ixa(k,i)] * vint[ixa(k,j)];
+                }
+                r[ixb(i,j)] = s;
+            }
+        }
+        Cov3{v: r}
+    }
+}
+
 // this is special: CT.C.C -> C
-impl Mul<&Cov5> for &Cov5 {
+impl Rem<&Cov3> for &Cov3 {
+    type Output = Cov3;
+    fn rem(self, other: &Cov3) -> Cov3 {
+        let n = 3;
+        let w = n;
+        let ixa = |i0: usize, j0: usize| {
+            if i0 <= j0 { j0 + i0*w - (i0*(i0+1))/2 }  else { i0 + j0*w - (j0*(j0+1))/2 }
+        };
+        let ixi = |i0: usize, j0: usize| i0*w+j0;
+
+        // Cov3 * Cov3 -> Jac33
+        let mut inter = [0.0; 9];
+        for i in 0..n {
+        for j in 0..n {
+        let mut s = 0.0;
+        for k in 0..n {
+            s += self.v[ixa(k,i)] * other.v[ixa(k,j)];
+        }
+        inter[ixi(i,j)] = s;
+        }}
+
+        let mut res = [0.0; 6];
+        for i in 0..n {
+        for j in 0..n {
+        let mut s = 0.0;
+        for k in 0..n {
+            s += inter[ixi(i,k)] * self.v[ixa(k,j)];
+        }
+        res[ixa(i,j)] = s;
+        }}
+        Cov3 { v: res }
+    }
+}
+impl Rem<&Cov5> for &Cov5 {
     type Output = Cov5;
-    fn mul(self, other: &Cov5) -> Cov5 {
-        //self.v.len() is 9;
+    fn rem(self, other: &Cov5) -> Cov5 {
         let n = 5;
         let w = n;
         let ixa = |i0: usize, j0: usize| {

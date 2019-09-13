@@ -5,7 +5,7 @@ use crate::types::*;
 
 // use std::fmt;
 
-use std::convert::From;
+// use std::convert::From;
 
 pub fn fit<'a>(vhm: &'a VHMeas) -> Prong<'a> {
     vhm.k_smooth(vhm.k_filter())
@@ -18,91 +18,51 @@ impl VHMeas {
             .iter()
             .fold(self.vertex.clone(), |v, h| VHMeas::k_add(v, &h) )
     }
-    fn k_add( XMeas(v, vv): XMeas, HMeas(h, hh, w0): &HMeas ) -> XMeas {
-        let q_e   = HMeas::hv2q(h, &v);
-        let x_e   = v.clone();
-        let x_km1 = XMeas(v, vv.cholinv());
-        let p_k   = &HMeas(h.clone(), hh.cholinv(), *w0);
-        VHMeas::k_addp(x_km1, p_k, x_e, q_e, Chi2(1e6_f64), 0)
-    }
 // -- | add a helix measurement to kalman filter, return updated vertex position
 // -- | if we can't invert, don't update vertex
-    fn k_addp(XMeas(v0, uu0): XMeas,
-              HMeas(h, gg, _w0): &HMeas,
-              x_e0: Vec3,
-              q_e0: Vec3,
-              Chi2(chi2_00): Chi2,
-              iter0: usize
-              ) -> XMeas {
-        let mut x_e = x_e0;
-        let mut q_e = q_e0;
-        let mut chi2_0 = chi2_00;
-        let mut iter = iter0;
-        loop
-        {
+    fn k_add( XMeas(v0, vv0): XMeas, HMeas(h, hh, _w0): &HMeas ) -> XMeas {
+        let uu0        = &vv0.cholinv();
+        let gg         = &hh.cholinv();
+        let mut q_e    = HMeas::hv2q(h, &v0);
+        let mut x_e    = v0.clone();
+        let mut chi2_0 = 1e6_f64;
+        let mut iter   = 0;
+        loop {
             let (aa, bb, h0) = expand(&x_e, &q_e);
-            let ww: Cov3   = (&bb * gg).cholinv();
-            let gb: Cov5   = gg - &(gg * &(&bb * &ww));
-            let uu   = &uu0 + &(&aa * &gb);
+            let ww   = (&bb % gg).cholinv();
+            let gb   = gg - &(gg % &(&bb % &ww));
+            let uu   = uu0 + &(&aa % &gb);
             let cc   = uu.cholinv();
-            let m    = h - &h0;
-            let v    = &cc * &(&(&uu0 * &v0) + &(&aa * &(&gb * &m)));
-            let dm   = &m - &(&aa * &v);
-            let q    = &ww * &(&bb * &(gg * &dm));
-            let dh   = &dm - &(&bb * &q);
+            let p    = h - &h0;
+            let v    = &cc * &(&(uu0 * &v0) + &(&aa * &(&gb * &p)));
+            let dp   = &p - &(&aa * &v);
+            let q    = &ww * &(&bb * &(gg * &dp));
+            let dh   = &dp - &(&bb * &q);
             let dv   = &v - &v0;
-            let chi2 = &dh * &(gg * &dh) + &dv * &(&uu0 * &dv);
+            let chi2 = &dh * &(gg * &dh) + &dv * &(uu0 * &dv);
 
             const CHI2CUT: f64 = 0.5;
             const ITERMAX: usize = 99;
             let good_enough = f64::abs(chi2 - chi2_0) < CHI2CUT || iter > ITERMAX;
 
-            if good_enough {
-                return XMeas(v, cc);
-            } else {
-                chi2_0 = chi2;
-                iter = iter+1; // +1;
-                x_e = v;
-                q_e = q;
-                // k_addp(XMeas(v0, uu0), HMeas(*h, *gg, *w0), v, q, Chi2(chi2), iter+1)
-            }
+            if good_enough { return XMeas(v, cc); }
+            chi2_0 = chi2;
+            iter = iter+1;
+            x_e = v;
+            q_e = q;
         }
-        // XMeas(v0, uu0)
     }
-// -- | add a helix measurement to kalman filter, return updated vertex position
-// -- | if we can't invert, don't update vertex
-// kAdd' :: XMeas -> HMeas -> Vec3 -> Vec3 -> Chi2 -> Int -> XMeas
-// --kAdd' (XMeas v0 uu0) (HMeas h gg w0) x_e q_e _ i |
-// --        i == 0 && trace ("kadd'-->" <> show i <> "|" <> show v0 <> show h) false = undefined
-// kAdd' (XMeas v0 uu0) (HMeas h gg w0) x_e q_e (Chi2 𝜒2_0) iter
-//   | goodEnough = XMeas v cc
-//   | otherwise  = kAdd' (XMeas v0 uu0) (HMeas h gg w0) v q (Chi2 𝜒2) (iter+1)
-//   where
-//     Jacs {aajacs=aa, bbjacs=bb, h0jacs=h0} = J.expand x_e q_e
-//     aaT  = tr aa
-//     bbT  = tr bb
-//     ww   = fromJust $ invMaybe (bb .*. gg)
-//     gb   = gg - gg .*. (bbT .*. ww)
-//     uu   = uu0 + aa .*. gb
-//     cc   = inv uu
-//     m    = h - h0
-//     v    = cc *. (uu0 *. v0 + aaT *. gb *. m)
-//     dm   = m - aa *. v
-//     q    = ww *. (bbT *. gg *. dm)
-//     𝜒2   = (dm - bb *. q) .*. gg + (v - v0) .*. uu0
-//     goodEnough = abs (𝜒2 - 𝜒2_0) < chi2cut || iter > iterMax where
-//       chi2cut = 0.5
-//       iterMax = 99 :: Int
-
 
     fn k_smooth(&self, v: XMeas) -> Prong {
         let n = self.helices.len();
         let mut ql: Vec<QMeas> = Vec::new();
-        for i in 0..n { ql.push(QMeas::from(&self.helices[i])); }
+        let mut cl: Vec<Chi2>  = Vec::new();
+        for i in 0..n { if let Some((q,c)) = VHMeas::ksm(&v, &self.helices[i]) { ql.push(q); cl.push(c); }}
+        // for i in 0..n { ql.push(QMeas::from(&self.helices[i])); }
         Prong {n_prong: n,
         fit_vertex: v,
         fit_momenta: ql,
-        fit_chi2s: vec![Chi2(1.0); n],
+        fit_chi2s: cl,
         measurements: &self,
         }
     }
@@ -117,5 +77,35 @@ impl VHMeas {
 //   pr' = Prong { fitVertex= v, fitMomenta= ql, fitChi2s= chi2l, nProng= n'', measurements= VHMeas {vertex= v0, helices= hl'} }
     // }
 
-}
 
+    // -- kalman smoother step: calculate 3-mom q and chi2 at kalman filter'ed vertex
+    // -- if we can't invert, return Nothing and this track will not be included
+    fn ksm(XMeas(x, cc): &XMeas, HMeas(h, hh, w0): &HMeas) -> Option<(QMeas, Chi2)> {
+        let q_e    = HMeas::hv2q(h, x);
+        let (aa, bb, h0) = expand(x, &q_e);
+        let gg         = &hh.cholinv();
+        let ww         = (&bb % gg).cholinv();
+        let p          = h - &h0;
+        let uu         = cc.cholinv();
+        let dp   = &p - &(&aa * x);
+        let q    = &ww * &(&bb * &(gg * &dp));
+        let e0: Jac35  = cc * &aa;
+        let e1: Jac35  = &e0 * gg;
+        let e2: Jac53  = &bb * &ww;
+        let ee: Jac33  = &e1 * &e2;
+        let dd   = &ww + &(&ee % &uu);
+        let r    = &p - &(&(&aa * x) + &(&bb * &q));
+        let ch   = &r * &(gg * &r);
+
+        let gb   = gg - &(gg % &(&bb % &ww));
+        let uup  = &uu - &(&aa % &gb);
+        let ccp  = uup.cholinv();
+        let xp   = &ccp * &( &(&uu * x) - &(&aa *&(&gb * &p)));
+        let dx   = x - &xp;
+        let cx   = &dx * &(&uup * &dx);
+        let chi2 = &cx + &ch;
+
+        Some((QMeas(q, dd, *w0), Chi2(chi2)))
+    }
+
+}
