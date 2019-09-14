@@ -161,7 +161,7 @@ impl fmt::Display for MMeas {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, PartialEq, Clone)]
 pub struct PMeas(pub Vec4, pub Cov4);
 impl PMeas {
     fn mass(&self) -> MMeas {
@@ -206,8 +206,8 @@ impl Add<&PMeas> for PMeas {
     }
 }
 pub fn inv_mass(ps: &Vec<PMeas>) -> MMeas {
-    let psum = ps[1..].iter()
-                      .fold( ps[0].clone(), |acc, p| acc + p ); // PMeas should get a Default
+    let psum = ps[0..].iter()
+                      .fold( PMeas::default(), |acc, p| acc + p );
     psum.mass()
 }
 use std::f64;

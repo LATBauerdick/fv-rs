@@ -57,13 +57,17 @@ impl VHMeas {
         let n = self.helices.len();
         let mut ql: Vec<QMeas> = Vec::new();
         let mut cl: Vec<Chi2>  = Vec::new();
-        for i in 0..n { if let Some((q,c)) = VHMeas::ksm(&v, &self.helices[i]) { ql.push(q); cl.push(c); }}
-        // for i in 0..n { ql.push(QMeas::from(&self.helices[i])); }
-        Prong {n_prong: n,
-        fit_vertex: v,
-        fit_momenta: ql,
-        fit_chi2s: cl,
-        measurements: &self,
+        let mut np = 0_usize;
+        for i in 0..n {
+            if let Some((q,c)) = VHMeas::ksm(&v, &self.helices[i]) {
+                ql.push(q); cl.push(c); np += 1;
+            }
+        }
+        Prong { n_prong: np,
+                fit_vertex: v,
+                fit_momenta: ql,
+                fit_chi2s: cl,
+                measurements: &self,
         }
     }
 
@@ -81,30 +85,25 @@ impl VHMeas {
     // -- kalman smoother step: calculate 3-mom q and chi2 at kalman filter'ed vertex
     // -- if we can't invert, return Nothing and this track will not be included
     fn ksm(XMeas(x, cc): &XMeas, HMeas(h, hh, w0): &HMeas) -> Option<(QMeas, Chi2)> {
-        let q_e    = HMeas::hv2q(h, x);
-        let (aa, bb, h0) = expand(x, &q_e);
+        let q_e    = &HMeas::hv2q(h, x);
+        let (aa, bb, h0) = &expand(x, q_e);
         let gg         = &hh.cholinv();
-        let ww         = (&bb % gg).cholinv();
-        let p          = h - &h0;
-        let uu         = cc.cholinv();
-        let dp   = &p - &(&aa * x);
-        let q    = &ww * &(&bb * &(gg * &dp));
-        let e0: Jac35  = cc * &aa;
-        let e1: Jac35  = &e0 * gg;
-        let e2: Jac53  = &bb * &ww;
-        let ee: Jac33  = &e1 * &e2;
-        let dd   = &ww + &(&ee % &uu);
-        let r    = &p - &(&(&aa * x) + &(&bb * &q));
-        let ch   = &r * &(gg * &r);
-
-        let gb   = gg - &(gg % &(&bb % &ww));
-        let uup  = &uu - &(&aa % &gb);
-        let ccp  = uup.cholinv();
-        let xp   = &ccp * &( &(&uu * x) - &(&aa *&(&gb * &p)));
-        let dx   = x - &xp;
-        let cx   = &dx * &(&uup * &dx);
-        let chi2 = &cx + &ch;
-
+        let ww         = &(bb % gg).cholinv();
+        let p          = &(h - h0);
+        let uu         = &cc.cholinv();
+        let dp         = p - &(aa * x);
+        let q          = ww * &(bb * &(gg * &dp));
+        let ee: Jac33  = &(&(cc * aa) * gg) * &(bb * ww);
+        let dd         = ww + &(&ee % uu);
+        let r          = p - &(&(aa * x) + &(bb * &q));
+        let ch         = &r * &(gg * &r);
+        let gb         = gg - &(gg % &(bb % ww));
+        let uup        = uu - &(aa % &gb);
+        let ccp        = uup.cholinv();
+        let xp         = &ccp * &( &(uu * x) - &(aa *&(&gb * p)));
+        let dx         = x - &xp;
+        let cx         = &dx * &(&uup * &dx);
+        let chi2       = cx + ch;
         Some((QMeas(q, dd, *w0), Chi2(chi2)))
     }
 
